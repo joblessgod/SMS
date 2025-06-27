@@ -1,6 +1,8 @@
 # Custom Files Ignored
 /.vscode
 SMS-v1
+*.dat
+*.txt
 
 # Prerequisites
 *.d
