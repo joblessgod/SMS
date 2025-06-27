@@ -77,6 +77,7 @@ int main()
                 return 1;
             }
             size_t written = fwrite(&user, sizeof(struct User), 1, fp);
+            fputc('\n', fp);
             if (written != 0)
                 printf(GREEN"\n%s, Your account has been created successfully!\n"RESET, user.fullName);
             else
