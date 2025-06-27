@@ -1,2 +1,2 @@
-# Studnet Management System (SMS)
-Make your life easier
+# Student Management System (SMS)
+Make your life easier while studying!
