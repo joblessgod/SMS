@@ -10,7 +10,7 @@ SRC_DIR = src
 INC_DIR = include
 
 # Source Files
-SRC = $(SRC_DIR)/main.c $(SRC_DIR)/mainMenu.c
+SRC = $(SRC_DIR)/main.c $(SRC_DIR)/mainMenu.c $(SRC_DIR)/helper.c
 
 # Output binary name
 TARGET = SMS
@@ -33,6 +33,6 @@ clean:
 gpush:
 	git status
 	git add .
-	git commit -m "New Commit/Changed from Sanchit"
+	git commit -m "😏 New Commit/Changed from Sanchit"
 	git push
 
