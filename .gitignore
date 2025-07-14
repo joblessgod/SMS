@@ -1,6 +1,6 @@
 # Custom Files Ignored
 /.vscode
-SMS-v1
+/archive
 *.dat
 *.txt
 
