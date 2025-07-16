@@ -61,7 +61,7 @@ int main()
             printf(RED "\nPassword not matched!" RESET);
             printf("\nPress any key to continue...");
             getchar();
-            return 0; // Return to main menu instead of recursive cal 0l
+            return 0;
         }
         else
         {
@@ -76,8 +76,8 @@ int main()
                 return 0;
             }
             sscanf(line, "%49[^,],%49[^,],%49[^,],%49[^,],%49[^\n]", user.fullName, user.email, user.phone, user.role, user.password);
-            // sscanf(line, "%49[^,],%49[^,]", user.fullName, user.email);
-            if (strcmp(user.email, email) == 0){
+            if (strcmp(user.email, email) == 0)
+            {
                 printf(RED "\nEmail already exists! Please try a different email.\n" RESET);
                 fclose(fpCheck);
                 printf("\nPress any key to continue...");
