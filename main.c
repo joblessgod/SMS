@@ -21,9 +21,40 @@ struct User
     char phone[50];
 };
 
+int checkEmailExits(struct User user)
+{
+    char line[300];
+    FILE *fpCheck = fopen("user.txt", "r");
+    struct User checkUser;
+    if (fpCheck == NULL)
+    {
+        printf(RED "Error opening file" RESET);
+        pressKeyToContinue();
+        return 0;
+    }
+    // checks if email already exits or not
+    while (fgets(line, sizeof(line), fpCheck) != NULL)
+    {
+        // Parse only the email field (skip first field, get second field)
+        if (sscanf(line, "%*[^,],%49[^,]", checkUser.email) == 1)
+        {
+            printf("Checking email: %s\n", checkUser.email);
+
+            // Compare emails
+            if (strcmp(checkUser.email, user.email) == 0)
+            {
+                printf(RED "\nEmail already exists! Please try a different email.\n" RESET);
+                fclose(fpCheck); // Close file before returning
+                pressKeyToContinue();
+                return 1; // Email exists
+            }
+        }
+    }
+}
+
 int main()
 {
-    SetConsoleTitle("Student Management System | Team Sapphire"); // ignroe it
+    SetConsoleTitle("Student Management System | Team Sapphire"); // Changes the Terminal name into this
     struct User user;
     int choice;
 
@@ -38,6 +69,7 @@ int main()
     {
     case 1: // signupModule
         system("cls");
+
         char confirmPassword[50];
         printf(CYAN "=== Sign Up ===\n" RESET);
 
@@ -46,6 +78,7 @@ int main()
 
         printf(CYAN "Enter your email:\t" RESET);
         takeInput(user.email);
+        checkEmailExits(user);
 
         printf(CYAN "Enter your phone:\t" RESET);
         takeInput(user.phone);
@@ -59,49 +92,19 @@ int main()
         if (strcmp(user.password, confirmPassword) != 0)
         {
             printf(RED "\nPassword not matched!" RESET);
-            printf("\nPress any key to continue...");
-            getchar();
+            pressKeyToContinue();
             return 0;
         }
         else
         {
-            char line[300];
-            char email[50];
-            FILE *fpCheck = fopen("user.txt", "r");
-            if (fpCheck == NULL)
-            {
-                printf(RED "Error opening file" RESET);
-                printf("\nPress any key to continue...");
-                getchar();
-                return 0;
-            }
-            sscanf(line, "%49[^,],%49[^,],%49[^,],%49[^,],%49[^\n]", user.fullName, user.email, user.phone, user.role, user.password);
-            if (strcmp(user.email, email) == 0)
-            {
-                printf(RED "\nEmail already exists! Please try a different email.\n" RESET);
-                fclose(fpCheck);
-                printf("\nPress any key to continue...");
-                getchar();
-                return 0;
-            }
-            fclose(fpCheck);
-
-            // else part
             FILE *fp = fopen("user.txt", "a+");
             if (fp == NULL)
             {
                 printf(RED "Error opening file" RESET);
-                printf("\nPress any key to continue...");
-                getchar();
+                pressKeyToContinue();
                 return 0;
             }
             int written = fprintf(fp, "%s,%s,%s,%s,%s\n", user.fullName, user.email, user.phone, "student", user.password);
-
-            // // size_t written = fwrite(&user, sizeof(struct User), 1, fp);
-            // // size_t written = fprintf(fp, "Full Name: %s\nEmail: %s\nPhone: %s\nRole: %s\nPassword: %s\n",
-            // //         user.fullName, user.email, user.phone, "Student", user.password);
-
-            // size_t written = fprintf(fp, "%s,%s,%s,%s,%s\n", user.fullName, user.email, user.phone, "student", user.password);
 
             if (written > 0)
             {
@@ -112,8 +115,7 @@ int main()
                 printf(RED "\nSorry! Something went wrong :(" RESET);
             }
             fclose(fp);
-            printf("\nPress any key to continue...");
-            getchar();
+            pressKeyToContinue();
         }
         break;
     case 2: // loginModule
@@ -128,20 +130,19 @@ int main()
         printf(CYAN "Enter your password:\t" RESET);
         takePassword(password);
 
-        // Read from CSV file
+        // Read from TXT file
         FILE *fp = fopen("user.txt", "r");
         if (fp == NULL)
         {
             printf(RED "No users found. Please sign up first!\n" RESET);
-            printf("\nPress any key to continue...");
-            getchar();
+            pressKeyToContinue();
             return 0;
         }
 
         char line[300];
         while (fgets(line, sizeof(line), fp))
         {
-            // Parse CSV line
+            // Parse TXT line
             sscanf(line, "%49[^,],%49[^,],%49[^,],%49[^,],%49[^\n]", user.fullName, user.email, user.phone, user.role, user.password);
             if (strcmp(user.email, email) == 0 && strcmp(user.password, password) == 0)
             {
@@ -149,14 +150,6 @@ int main()
                 break;
             }
         }
-        // while (fread(&user, sizeof(struct User), 1, fp))
-        // {
-        //     if (strcmp(user.email, email) == 0 && strcmp(user.password, password) == 0)
-        //     {
-        //         found = 1;
-        //         break;
-        //     }
-        // }
         fclose(fp);
 
         if (found)
@@ -174,12 +167,10 @@ int main()
             printf(RED "\nInvalid email or password!\n" RESET);
         }
 
-        printf("\nPress any key to continue...");
-        getchar();
+        pressKeyToContinue();
         break;
-    case 3: // ecitModule
-        printf(GREEN "\t\t\tBye Bye :)\n" RESET);
-        system("exit");
+    case 3: // exitModule
+        terminateProgram();
         break;
 
     default:
