@@ -8,6 +8,12 @@
 #define TAB 9
 #define BKSPCE 8
 
+// Custom Colors
+#define RESET "\033[0m"
+#define RED "\033[31m"
+#define CYAN "\033[36m"
+#define GREEN "\033[32m"
+
 void takeInput(char ch[50])
 {
     fgets(ch, 50, stdin);
@@ -41,4 +47,24 @@ void takePassword(char pwd[50])
             printf("* \b");
         }
     }
+}
+
+void terminateProgram()
+{
+    system("cls");
+    for (int i = 3; i > 0; i--)
+    {
+        system("cls");
+        printf("Terminating the program in %d second...\n", i);
+        Sleep(1000);
+    }
+    system("cls");
+    printf(RED "Program Terminated! Good Bye :)" RESET);
+    system("exit");
+}
+
+void pressKeyToContinue()
+{
+    printf("\nPress ENTER to continue...");
+    getchar();
 }
