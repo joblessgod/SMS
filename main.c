@@ -52,16 +52,89 @@ int checkEmailExits(struct User user)
     }
 }
 
+int signupModule(struct User user)
+{
+    FILE *fp = fopen("user.txt", "a+");
+    if (fp == NULL)
+    {
+        printf(RED "Error opening file" RESET);
+        pressKeyToContinue();
+        return 0;
+    }
+    int written = fprintf(fp, "%s,%s,%s,%s,%s\n", user.fullName, user.email, user.phone, "student", user.password);
+
+    if (written > 0)
+    {
+        printf(GREEN "\n%s, Your account has been created successfully as %s!\n" RESET, user.fullName, "Student");
+    }
+    else
+    {
+        printf(RED "\nSorry! Something went wrong :(" RESET);
+    }
+    fclose(fp);
+}
+
+int loginModule(struct User user)
+{
+
+    system("cls");
+
+    char email[50], password[50];
+    int found = 0;
+
+    printf(CYAN "Enter your email:\t" RESET);
+    takeInput(email);
+
+    printf(CYAN "Enter your password:\t" RESET);
+    takePassword(password);
+
+    // Read from TXT file
+    FILE *fp = fopen("user.txt", "r");
+    if (fp == NULL)
+    {
+        printf(RED "No users found. Please sign up first!\n" RESET);
+        pressKeyToContinue();
+        return 0;
+    }
+
+    char line[300];
+    while (fgets(line, sizeof(line), fp))
+    {
+        // Parse TXT line
+        sscanf(line, "%49[^,],%49[^,],%49[^,],%49[^,],%49[^\n]", user.fullName, user.email, user.phone, user.role, user.password);
+        if (strcmp(user.email, email) == 0 && strcmp(user.password, password) == 0)
+        {
+            found = 1;
+            break;
+        }
+    }
+    fclose(fp);
+
+    if (found)
+    {
+        system("cls");
+        printf(GREEN "Login successful! Welcome, %s.\n" RESET, user.fullName);
+        printf(CYAN "\nYour Details:\n" RESET);
+        printf("Name:\t %s\n", user.fullName);
+        printf("Email:\t %s\n", user.email);
+        printf("Phone:\t %s\n", user.phone);
+        printf("Role:\t %s\n", "Student");
+    }
+    else
+    {
+        printf(RED "\nInvalid email or password!\n" RESET);
+    }
+}
+
 int main()
 {
-    SetConsoleTitle("Student Management System | Team Sapphire"); // Changes the Terminal name into this
+    SetConsoleTitle("Student Management System | Team Sapphire"); // "Terminal" rename into this
     struct User user;
     int choice;
 
-    system("cls");
+    // system("cls");
     showMainMenu();
 
-    printf(CYAN "Enter your choice: " RESET);
     scanf("%d", &choice);
     while ((getchar()) != '\n')
         ;
@@ -97,76 +170,12 @@ int main()
         }
         else
         {
-            FILE *fp = fopen("user.txt", "a+");
-            if (fp == NULL)
-            {
-                printf(RED "Error opening file" RESET);
-                pressKeyToContinue();
-                return 0;
-            }
-            int written = fprintf(fp, "%s,%s,%s,%s,%s\n", user.fullName, user.email, user.phone, "student", user.password);
-
-            if (written > 0)
-            {
-                printf(GREEN "\n%s, Your account has been created successfully as %s!\n" RESET, user.fullName, "Student");
-            }
-            else
-            {
-                printf(RED "\nSorry! Something went wrong :(" RESET);
-            }
-            fclose(fp);
+            signupModule(user);
             pressKeyToContinue();
         }
         break;
     case 2: // loginModule
-        system("cls");
-
-        char email[50], password[50];
-        int found = 0;
-
-        printf(CYAN "Enter your email:\t" RESET);
-        takeInput(email);
-
-        printf(CYAN "Enter your password:\t" RESET);
-        takePassword(password);
-
-        // Read from TXT file
-        FILE *fp = fopen("user.txt", "r");
-        if (fp == NULL)
-        {
-            printf(RED "No users found. Please sign up first!\n" RESET);
-            pressKeyToContinue();
-            return 0;
-        }
-
-        char line[300];
-        while (fgets(line, sizeof(line), fp))
-        {
-            // Parse TXT line
-            sscanf(line, "%49[^,],%49[^,],%49[^,],%49[^,],%49[^\n]", user.fullName, user.email, user.phone, user.role, user.password);
-            if (strcmp(user.email, email) == 0 && strcmp(user.password, password) == 0)
-            {
-                found = 1;
-                break;
-            }
-        }
-        fclose(fp);
-
-        if (found)
-        {
-            system("cls");
-            printf(GREEN "Login successful! Welcome, %s.\n" RESET, user.fullName);
-            printf(CYAN "\nYour Details:\n" RESET);
-            printf("Full Name:\t %s\n", user.fullName);
-            printf("Email:\t %s\n", user.email);
-            printf("Phone:\t %s\n", user.phone);
-            printf("Role:\t %s\n", "Student");
-        }
-        else
-        {
-            printf(RED "\nInvalid email or password!\n" RESET);
-        }
-
+        loginModule(user);
         pressKeyToContinue();
         break;
     case 3: // exitModule

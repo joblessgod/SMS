@@ -7,8 +7,9 @@
 
 void showMainMenu()
 {
-   printf(CYAN "=== Student Management System ===\n" RESET);
-    printf("1. Sign Up\n");
+    printf(CYAN "=== Student Management System ===\n" RESET);
+    printf("1. Sign-up\n");
     printf("2. Login\n");
     printf("3. Exit\n");
+    printf(CYAN "Enter your choice: " RESET);
 }
