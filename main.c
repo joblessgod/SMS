@@ -184,7 +184,7 @@ int main()
             User loggedInUser;
             if (loginUser(email, password, &loggedInUser))
             {
-                displayUserInfo(&loggedInUser);
+
                 showRoleBasedMenu(&loggedInUser);
             }
             else
@@ -393,6 +393,7 @@ void createDefaultAdmin()
 }
 void showRoleBasedMenu(const User *user)
 {
+    
     if (strcmp(user->role, "Admin") == 0)
     {
         showAdminMenu(user);
@@ -417,17 +418,18 @@ void showStudentMenu(const User *user)
     do
     {
         clearScreen();
-        printf(CYAN "=== Student Dashboard - Welcome %s ===\n" RESET, user->fullName);
+        displayUserInfo(user);
+        printf(CYAN "\n=== Student Dashboard - Welcome %s ===\n" RESET, user->fullName);
         printf(BLUE "|-------------------------------------|\n");
         printf("|            STUDENT MENU             |\n");
         printf("|-------------------------------------|\n");
-        printf("| 1. View My Marks                   |\n");
-        printf("| 2. View My Assignments             |\n");
-        printf("| 3. View My Fee Status              |\n");
-        printf("| 4. Update Profile                  |\n");
-        printf("| 5. View My Attendance              |\n");
-        printf("| 6. Submit Assignment               |\n");
-        printf("| 7. Logout                          |\n");
+        printf("| 1. View My Marks                    |\n");
+        printf("| 2. View My Assignments              |\n");
+        printf("| 3. View My Fee Status               |\n");
+        printf("| 4. Update Profile                   |\n");
+        printf("| 5. View My Attendance               |\n");
+        printf("| 6. Submit Assignment                |\n");
+        printf("| 7. Logout                           |\n");
         printf("|-------------------------------------|\n" RESET);
         printf(CYAN "Enter your choice: " RESET);
 
@@ -484,19 +486,20 @@ void showTeacherMenu(const User *user)
     int choice;
     do
     {
-        //clearScreen();
-        printf(CYAN "=== Teacher Dashboard - Welcome %s ===\n" RESET, user->fullName);
+        clearScreen();
+        displayUserInfo(user);
+        printf(CYAN "\n=== Teacher Dashboard - Welcome %s ===\n" RESET, user->fullName);
         printf(MAGENTA "|-------------------------------------|\n");
         printf("|            TEACHER MENU             |\n");
         printf("|-------------------------------------|\n");
-        printf("| 1. Manage Student Marks            |\n");
-        printf("| 2. Create/View Assignments         |\n");
-        printf("| 3. View Student List               |\n");
-        printf("| 4. Mark Attendance                 |\n");
-        printf("| 5. Grade Assignments               |\n");
-        printf("| 6. Generate Reports                |\n");
-        printf("| 7. Update Profile                  |\n");
-        printf("| 8. Logout                          |\n");
+        printf("| 1. Manage Student Marks             |\n");
+        printf("| 2. Create/View Assignments          |\n");
+        printf("| 3. View Student List                |\n");
+        printf("| 4. Mark Attendance                  |\n");
+        printf("| 5. Grade Assignments                |\n");
+        printf("| 6. Generate Reports                 |\n");
+        printf("| 7. Update Profile                   |\n");
+        printf("| 8. Logout                           |\n");
         printf("|-------------------------------------|\n" RESET);
         printf(CYAN "Enter your choice: " RESET);
 
@@ -558,20 +561,21 @@ void showAdminMenu(const User *user)
     do
     {
         clearScreen();
-        printf(CYAN "=== Admin Dashboard - Welcome %s ===\n" RESET, user->fullName);
+        displayUserInfo(user);
+        printf(CYAN "\n=== Admin Dashboard - Welcome %s ===\n" RESET, user->fullName);
         printf(RED "|-------------------------------------|\n");
         printf("|             ADMIN MENU              |\n");
         printf("|-------------------------------------|\n");
-        printf("| 1. User Management                 |\n");
-        printf("| 2. Change User Roles               |\n");
-        printf("| 3. View All Users                  |\n");
-        printf("| 4. Manage Student Records          |\n");
-        printf("| 5. Manage Teacher Records          |\n");
-        printf("| 6. Fee Management                  |\n");
-        printf("| 7. System Reports                  |\n");
-        printf("| 8. Database Backup                 |\n");
-        printf("| 9. Settings                        |\n");
-        printf("| 10. Logout                         |\n");
+        printf("| 1. User Management                  |\n");
+        printf("| 2. Change User Roles                |\n");
+        printf("| 3. View All Users                   |\n");
+        printf("| 4. Manage Student Records           |\n");
+        printf("| 5. Manage Teacher Records           |\n");
+        printf("| 6. Fee Management                   |\n");
+        printf("| 7. System Reports                   |\n");
+        printf("| 8. Database Backup                  |\n");
+        printf("| 9. Settings                         |\n");
+        printf("| 10. Logout                          |\n");
         printf("|-------------------------------------|\n" RESET);
         printf(CYAN "Enter your choice: " RESET);
 
@@ -599,22 +603,56 @@ void showAdminMenu(const User *user)
             printf(CYAN "=== Change User Role ===\n" RESET);
             char email[MAX_EMAIL_LENGTH];
             char newRole[MAX_ROLE_LENGTH];
+            int roleChoice;
 
             printf(CYAN "Enter user email: " RESET);
             takeInput(email, MAX_EMAIL_LENGTH);
 
             printf(CYAN "\nAvailable Roles:\n" RESET);
             printf("1. Student\n2. Teacher\n3. Admin\n");
-            printf(CYAN "Enter new role: " RESET);
-            takeInput(newRole, MAX_ROLE_LENGTH);
+            printf(CYAN "Enter role choice (1-3): " RESET);
 
-            if (changeUserRole(email, newRole))
+            if (scanf("%d", &roleChoice) != 1)
             {
-                printf(GREEN "\nRole updated successfully!\n" RESET);
+                while (getchar() != '\n')
+                    ;
+                printf(RED "\nInvalid input!\n" RESET);
+                pressKeyToContinue();
+                break;
             }
             else
             {
-                printf(RED "\nFailed to update role.\n" RESET);
+                while (getchar() != '\n')
+                    ;
+            }
+
+            switch (roleChoice)
+            {
+            case 1:
+                strcpy(newRole, "Student");
+                break;
+            case 2:
+                strcpy(newRole, "Teacher");
+                break;
+            case 3:
+                strcpy(newRole, "Admin");
+                break;
+            default:
+                printf(RED "\nInvalid choice! Please select 1-3.\n" RESET);
+                pressKeyToContinue();
+                break;
+            }
+
+            if (roleChoice >= 1 && roleChoice <= 3)
+            {
+                if (changeUserRole(email, newRole))
+                {
+                    printf(GREEN "\nRole updated successfully to %s!\n" RESET, newRole);
+                }
+                else
+                {
+                    printf(RED "\nFailed to update role.\n" RESET);
+                }
             }
             pressKeyToContinue();
         }
