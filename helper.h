@@ -6,34 +6,43 @@
 // Custom Event Definations
 #define ENTER 13
 #define TAB 9
-#define BKSPCE 8
+#define BACKSPACE 8
 
-// Custom Colors
+// Color definitions
 #define RESET "\033[0m"
 #define RED "\033[31m"
 #define CYAN "\033[36m"
 #define GREEN "\033[32m"
+#define YELLOW "\033[33m"
 
-void takeInput(char ch[50])
+void takeInput(char *input, int maxSize)
 {
-    fgets(ch, 50, stdin);
-    ch[strlen(ch) - 1] = 0;
+    if (fgets(input, maxSize, stdin) != NULL)
+    {
+        // Remove newline character if present
+        size_t len = strlen(input);
+        if (len > 0 && input[len - 1] == '\n')
+        {
+            input[len - 1] = '\0';
+        }
+    }
 }
 
-void takePassword(char pwd[50])
-
+void takePassword(char *password, int maxSize)
 {
     int i = 0;
     char ch;
-    while (1)
+
+    while (i < maxSize - 1)
     {
         ch = getch();
+
         if (ch == ENTER || ch == TAB)
         {
-            pwd[i] = '\0';
+            password[i] = '\0';
             break;
         }
-        else if (ch == BKSPCE)
+        else if (ch == BACKSPACE)
         {
             if (i > 0)
             {
@@ -43,28 +52,34 @@ void takePassword(char pwd[50])
         }
         else
         {
-            pwd[i++] = ch;
-            printf("* \b");
+            password[i++] = ch;
+            printf("*");
         }
     }
+    password[i] = '\0';
+}
+
+void clearScreen()
+{
+    system("cls");
 }
 
 void terminateProgram()
 {
-    system("cls");
+    clearScreen();
     for (int i = 3; i > 0; i--)
     {
-        system("cls");
-        printf("Terminating the program in %d second...\n", i);
+        clearScreen();
+        printf(YELLOW "Terminating program in %d second(s)...\n" RESET, i);
         Sleep(1000);
     }
-    system("cls");
-    printf(RED "Program Terminated! Good Bye :)" RESET);
-    system("exit");
+    clearScreen();
+    printf(RED "Program terminated! Goodbye! :)\n" RESET);
+    exit(0);
 }
 
 void pressKeyToContinue()
 {
-    printf("\nPress ENTER to continue...");
+    printf(CYAN "\nPress ENTER to continue..." RESET);
     getchar();
 }
