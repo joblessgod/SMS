@@ -22,7 +22,10 @@
 #define MAX_PHONE_LENGTH 20
 #define MAX_ROLE_LENGTH 20
 #define MAX_LINE_LENGTH 300
+
 #define USER_FILE "users.txt"
+#define MARKS_FILE "marks.txt"
+#define FEES_FILE "fees.txt"
 
 typedef struct
 {
@@ -41,12 +44,18 @@ void displayUserInfo(const User *user);
 int isValidEmail(const char *email);
 int isValidPhone(const char *phone);
 void createDefaultAdmin();
+
 void showRoleBasedMenu(const User *user);
 void showStudentMenu(const User *user);
 void showTeacherMenu(const User *user);
 void showAdminMenu(const User *user);
 int changeUserRole(const char *email, const char *newRole);
 void listAllUsers();
+
+void viewMyMarks(const char *studentEmail);
+void viewMyFeeStatus(const char *studentEmail);
+void addStudentMarks(const char *teacherEmail);
+void manageFees(const char *adminEmail);
 
 int main()
 {
@@ -393,7 +402,7 @@ void createDefaultAdmin()
 }
 void showRoleBasedMenu(const User *user)
 {
-    
+
     if (strcmp(user->role, "Admin") == 0)
     {
         showAdminMenu(user);
@@ -419,7 +428,7 @@ void showStudentMenu(const User *user)
     {
         clearScreen();
         displayUserInfo(user);
-        printf(CYAN "\n=== Student Dashboard - Welcome %s ===\n" RESET, user->fullName);
+        printf(CYAN "=== Student Dashboard - Welcome %s ===\n" RESET, user->fullName);
         printf(BLUE "|-------------------------------------|\n");
         printf("|            STUDENT MENU             |\n");
         printf("|-------------------------------------|\n");
@@ -447,17 +456,18 @@ void showStudentMenu(const User *user)
 
         switch (choice)
         {
-        case 1:
-            printf(YELLOW "\n[Student Marks Module] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
+        case 1: // View My Marks
+            viewMyMarks(user->email);
             break;
+            // printf(YELLOW "\n[Student Marks Module] - Coming Soon!\n" RESET);
         case 2:
             printf(YELLOW "\n[Assignment Module] - Coming Soon!\n" RESET);
             pressKeyToContinue();
             break;
-        case 3:
-            printf(YELLOW "\n[Fee Module] - Coming Soon!\n" RESET);
+        case 3: // View My Fee Status
+            viewMyFeeStatus(user->email);
             pressKeyToContinue();
+            // printf(YELLOW "\n[Fee Module] - Coming Soon!\n" RESET);
             break;
         case 4:
             printf(YELLOW "\n[Profile Update] - Coming Soon!\n" RESET);
@@ -488,7 +498,7 @@ void showTeacherMenu(const User *user)
     {
         clearScreen();
         displayUserInfo(user);
-        printf(CYAN "\n=== Teacher Dashboard - Welcome %s ===\n" RESET, user->fullName);
+        printf(CYAN "=== Teacher Dashboard - Welcome %s ===\n" RESET, user->fullName);
         printf(MAGENTA "|-------------------------------------|\n");
         printf("|            TEACHER MENU             |\n");
         printf("|-------------------------------------|\n");
@@ -517,8 +527,9 @@ void showTeacherMenu(const User *user)
 
         switch (choice)
         {
-        case 1:
-            printf(YELLOW "\n[Marks Management] - Coming Soon!\n" RESET);
+        case 1: // Manage Student Marks
+            addStudentMarks(user->email);
+            // printf(YELLOW "\n[Marks Management] - Coming Soon!\n" RESET);
             pressKeyToContinue();
             break;
         case 2:
@@ -562,7 +573,7 @@ void showAdminMenu(const User *user)
     {
         clearScreen();
         displayUserInfo(user);
-        printf(CYAN "\n=== Admin Dashboard - Welcome %s ===\n" RESET, user->fullName);
+        printf(CYAN "=== Admin Dashboard - Welcome %s ===\n" RESET, user->fullName);
         printf(RED "|-------------------------------------|\n");
         printf("|             ADMIN MENU              |\n");
         printf("|-------------------------------------|\n");
@@ -659,7 +670,6 @@ void showAdminMenu(const User *user)
         break;
         case 3:
             listAllUsers();
-            pressKeyToContinue();
             break;
         case 4:
             printf(YELLOW "\n[Student Records Management] - Coming Soon!\n" RESET);
@@ -669,9 +679,8 @@ void showAdminMenu(const User *user)
             printf(YELLOW "\n[Teacher Records Management] - Coming Soon!\n" RESET);
             pressKeyToContinue();
             break;
-        case 6:
-            printf(YELLOW "\n[Fee Management] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
+        case 6: // Fee Management
+            manageFees(user->email);
             break;
         case 7:
             printf(YELLOW "\n[System Reports] - Coming Soon!\n" RESET);
@@ -743,6 +752,7 @@ int changeUserRole(const char *email, const char *newRole)
         printf(RED "Error: User with email '%s' not found.\n" RESET, email);
         return 0;
     }
+    pressKeyToContinue();
 }
 
 void listAllUsers()
@@ -788,4 +798,436 @@ void listAllUsers()
     }
     fclose(file);
     printf(CYAN "\nTotal Users: %d\n" RESET, userCount);
+    pressKeyToContinue();
+}
+
+void viewMyMarks(const char *studentEmail)
+{
+    clearScreen();
+    printf(CYAN "=== My Marks ===\n" RESET);
+
+    // Hardcoded subjects list
+    char subjects[][20] = {"English", "Math", "Science", "History", "Computer"};
+    int numSubjects = 5;
+
+    FILE *file = fopen(MARKS_FILE, "r");
+    if (file == NULL)
+    {
+        printf(RED "No marks found!\n" RESET);
+        printf(YELLOW "Contact your teacher to add marks.\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    char line[200];
+    char email[50];
+    int marks[5] = {-1, -1, -1, -1, -1}; // Initialize with -1 (not found)
+    int found = 0;
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        // First, just get the email part
+        if (sscanf(line, "%49[^,]", email) == 1)
+        {
+            if (strcmp(email, studentEmail) == 0)
+            {
+                // Found the student, now parse the marks
+                sscanf(line, "%49[^,],%d,%d,%d,%d,%d",
+                       email, &marks[0], &marks[1], &marks[2], &marks[3], &marks[4]);
+                found = 1;
+                break;
+            }
+        }
+    }
+    fclose(file);
+
+    printf(BLUE "Subject          Marks    Grade\n");
+    printf("--------------------------------\n" RESET);
+
+    float total = 0;
+    int count = 0;
+
+    for (int i = 0; i < numSubjects; i++)
+    {
+        if (marks[i] == -1)
+        {
+            printf("%-15s  %-7s  %s\n", subjects[i], "N/A", "-");
+        }
+        else
+        {
+            // Determine grade
+            char grade;
+            if (marks[i] >= 90)
+                grade = 'A';
+            else if (marks[i] >= 80)
+                grade = 'B';
+            else if (marks[i] >= 70)
+                grade = 'C';
+            else if (marks[i] >= 60)
+                grade = 'D';
+            else
+                grade = 'F';
+
+            printf("%-15s  %-7d  %c\n", subjects[i], marks[i], grade);
+            total += marks[i];
+            count++;
+        }
+    }
+
+    if (count > 0)
+    {
+        printf("--------------------------------\n");
+        printf(GREEN "Average: %.1f\n" RESET, total / count);
+    }
+
+    if (!found)
+    {
+        printf(YELLOW "\nNo marks record found for your account!\n" RESET);
+    }
+
+    pressKeyToContinue();
+}
+
+// Updated viewMyFeeStatus function
+void viewMyFeeStatus(const char *studentEmail)
+{
+    clearScreen();
+    printf(CYAN "=== My Fee Status ===\n" RESET);
+
+    FILE *file = fopen(FEES_FILE, "r");
+    if (file == NULL)
+    {
+        printf(RED "No fee records found!\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    char line[300];
+    char email[50];
+    float amounts[5] = {0}, paid[5] = {0}; // tuition, library, lab, sports, exam
+    char feeTypes[][20] = {"Tuition", "Library", "Lab", "Sports", "Exam"};
+    int found = 0;
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        if (sscanf(line, "%49[^,],%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+                   email, &amounts[0], &paid[0], &amounts[1], &paid[1],
+                   &amounts[2], &paid[2], &amounts[3], &paid[3],
+                   &amounts[4], &paid[4]) >= 1)
+        {
+
+            if (strcmp(email, studentEmail) == 0)
+            {
+                found = 1;
+                break;
+            }
+        }
+    }
+    fclose(file);
+
+    if (!found)
+    {
+        printf(YELLOW "No fee records found for your account.\n" RESET);
+        return;
+    }
+
+    printf(BLUE "Fee Type         Amount    Paid      Due       Status\n");
+    printf("----------------------------------------------------\n" RESET);
+
+    float totalDue = 0;
+
+    for (int i = 0; i < 5; i++)
+    {
+        if (amounts[i] > 0)
+        {
+            float due = amounts[i] - paid[i];
+            char status[20];
+
+            if (due <= 0)
+            {
+                strcpy(status, "Paid");
+                printf(GREEN "%-15s  %-8.0f  %-8.0f  %-8.0f  %s\n" RESET,
+                       feeTypes[i], amounts[i], paid[i], due, status);
+            }
+            else
+            {
+                strcpy(status, "Pending");
+                printf(RED "%-15s  %-8.0f  %-8.0f  %-8.0f  %s\n" RESET,
+                       feeTypes[i], amounts[i], paid[i], due, status);
+                totalDue += due;
+            }
+        }
+    }
+
+    if (totalDue > 0)
+    {
+        printf("----------------------------------------------------\n");
+        printf(RED "Total Due: Rs. %.0f\n" RESET, totalDue);
+    }
+    pressKeyToContinue();
+}
+
+// Updated addStudentMarks function (for teachers)
+void addStudentMarks(const char *teacherEmail)
+{
+    clearScreen();
+    printf(CYAN "=== Add/Update Student Marks ===\n" RESET);
+
+    char studentEmail[50];
+    char subjects[][20] = {"English", "Math", "Science", "History", "Computer"};
+    int numSubjects = 5;
+    int choice, newMarks;
+
+    printf(CYAN "Enter student email: " RESET);
+    takeInput(studentEmail, sizeof(studentEmail));
+
+    // Check if student exists
+    if (!checkEmailExists(studentEmail))
+    {
+        printf(RED "Student not found!\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    // Show subjects
+    printf(CYAN "\nSelect Subject:\n" RESET);
+    for (int i = 0; i < numSubjects; i++)
+    {
+        printf("%d. %s\n", i + 1, subjects[i]);
+    }
+
+    printf(CYAN "Enter choice (1-%d): " RESET, numSubjects);
+    if (scanf("%d", &choice) != 1 || choice < 1 || choice > numSubjects)
+    {
+        printf(RED "Invalid choice!\n" RESET);
+        while (getchar() != '\n')
+            ;
+        pressKeyToContinue();
+        return;
+    }
+    while (getchar() != '\n')
+        ;
+
+    printf(CYAN "Enter marks (0-100): " RESET);
+    if (scanf("%d", &newMarks) != 1 || newMarks < 0 || newMarks > 100)
+    {
+        printf(RED "Invalid marks!\n" RESET);
+        while (getchar() != '\n')
+            ;
+        pressKeyToContinue();
+        return;
+    }
+    while (getchar() != '\n')
+        ;
+
+    // Read existing data
+    FILE *file = fopen(MARKS_FILE, "r");
+    FILE *tempFile = fopen("temp_marks.txt", "w");
+
+    if (tempFile == NULL)
+    {
+        printf(RED "Error creating temporary file!\n" RESET);
+        if (file)
+            fclose(file);
+        pressKeyToContinue();
+        return;
+    }
+
+    char line[200];
+    char email[50];
+    int marks[5] = {-1, -1, -1, -1, -1};
+    int studentFound = 0;
+
+    if (file != NULL)
+    {
+        while (fgets(line, sizeof(line), file) != NULL)
+        {
+            if (sscanf(line, "%49[^,],%d,%d,%d,%d,%d",
+                       email, &marks[0], &marks[1], &marks[2], &marks[3], &marks[4]) >= 1)
+            {
+
+                if (strcmp(email, studentEmail) == 0)
+                {
+                    // Update the specific subject marks
+                    marks[choice - 1] = newMarks;
+                    studentFound = 1;
+                }
+
+                // Write to temp file
+                fprintf(tempFile, "%s,%d,%d,%d,%d,%d\n",
+                        email, marks[0], marks[1], marks[2], marks[3], marks[4]);
+
+                // Reset marks for next iteration
+                for (int i = 0; i < 5; i++)
+                    marks[i] = -1;
+            }
+        }
+        fclose(file);
+    }
+
+    // If student not found, add new record
+    if (!studentFound)
+    {
+        for (int i = 0; i < 5; i++)
+            marks[i] = -1;
+        marks[choice - 1] = newMarks;
+        fprintf(tempFile, "%s,%d,%d,%d,%d,%d\n",
+                studentEmail, marks[0], marks[1], marks[2], marks[3], marks[4]);
+    }
+
+    fclose(tempFile);
+
+    // Replace original file
+    remove(MARKS_FILE);
+    rename("temp_marks.txt", MARKS_FILE);
+
+    printf(GREEN "Marks updated successfully!\n");
+    printf("Student: %s\n", studentEmail);
+    printf("Subject: %s\n", subjects[choice - 1]);
+    printf("Marks: %d\n" RESET, newMarks);
+    pressKeyToContinue();
+}
+
+// Updated manageFees function (for admin)
+void manageFees(const char *adminEmail)
+{
+    clearScreen();
+    printf(CYAN "=== Manage Student Fees ===\n" RESET);
+
+    char studentEmail[50];
+    char feeTypes[][20] = {"Tuition", "Library", "Lab", "Sports", "Exam"};
+    int numFeeTypes = 5;
+    int choice;
+    float amount, paidAmount;
+
+    printf(CYAN "Enter student email: " RESET);
+    takeInput(studentEmail, sizeof(studentEmail));
+
+    if (!checkEmailExists(studentEmail))
+    {
+        printf(RED "Student not found!\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    // Show fee types
+    printf(CYAN "\nSelect Fee Type:\n" RESET);
+    for (int i = 0; i < numFeeTypes; i++)
+    {
+        printf("%d. %s\n", i + 1, feeTypes[i]);
+    }
+
+    printf(CYAN "Enter choice (1-%d): " RESET, numFeeTypes);
+    if (scanf("%d", &choice) != 1 || choice < 1 || choice > numFeeTypes)
+    {
+        printf(RED "Invalid choice!\n" RESET);
+        while (getchar() != '\n')
+            ;
+        pressKeyToContinue();
+        return;
+    }
+    while (getchar() != '\n')
+        ;
+
+    printf(CYAN "Enter total amount: " RESET);
+    scanf("%f", &amount);
+    while (getchar() != '\n')
+        ;
+
+    printf(CYAN "Enter paid amount: " RESET);
+    scanf("%f", &paidAmount);
+    while (getchar() != '\n')
+        ;
+
+    // Read existing data
+    FILE *file = fopen(FEES_FILE, "r");
+    FILE *tempFile = fopen("temp_fees.txt", "w");
+
+    if (tempFile == NULL)
+    {
+        printf(RED "Error creating temporary file!\n" RESET);
+        if (file)
+            fclose(file);
+        pressKeyToContinue();
+        return;
+    }
+
+    char line[300];
+    char email[50];
+    float amounts[5] = {0}, paid[5] = {0};
+    int studentFound = 0;
+
+    if (file != NULL)
+    {
+        while (fgets(line, sizeof(line), file) != NULL)
+        {
+            if (sscanf(line, "%49[^,],%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+                       email, &amounts[0], &paid[0], &amounts[1], &paid[1],
+                       &amounts[2], &paid[2], &amounts[3], &paid[3],
+                       &amounts[4], &paid[4]) >= 1)
+            {
+
+                if (strcmp(email, studentEmail) == 0)
+                {
+                    // Update the specific fee type
+                    amounts[choice - 1] = amount;
+                    paid[choice - 1] = paidAmount;
+                    studentFound = 1;
+                }
+
+                // Write to temp file
+                fprintf(tempFile, "%s,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f\n",
+                        email, amounts[0], paid[0], amounts[1], paid[1],
+                        amounts[2], paid[2], amounts[3], paid[3],
+                        amounts[4], paid[4]);
+
+                // Reset for next iteration
+                for (int i = 0; i < 5; i++)
+                {
+                    amounts[i] = 0;
+                    paid[i] = 0;
+                }
+            }
+        }
+        fclose(file);
+    }
+
+    // If student not found, add new record
+    if (!studentFound)
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            amounts[i] = 0;
+            paid[i] = 0;
+        }
+        amounts[choice - 1] = amount;
+        paid[choice - 1] = paidAmount;
+        fprintf(tempFile, "%s,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f,%.0f\n",
+                studentEmail, amounts[0], paid[0], amounts[1], paid[1],
+                amounts[2], paid[2], amounts[3], paid[3],
+                amounts[4], paid[4]);
+    }
+
+    fclose(tempFile);
+
+    // Replace original file
+    remove(FEES_FILE);
+    rename("temp_fees.txt", FEES_FILE);
+
+    char status[20];
+    if (paidAmount >= amount)
+    {
+        strcpy(status, "Paid");
+    }
+    else
+    {
+        strcpy(status, "Pending");
+    }
+
+    printf(GREEN "Fee record updated successfully!\n");
+    printf("Student: %s\n", studentEmail);
+    printf("Fee Type: %s\n", feeTypes[choice - 1]);
+    printf("Amount: %.0f, Paid: %.0f\n", amount, paidAmount);
+    printf("Status: %s\n" RESET, status);
+    pressKeyToContinue();
 }
