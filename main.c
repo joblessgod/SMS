@@ -16,7 +16,7 @@
 #define BLUE "\033[34m"
 #define MAGENTA "\033[35m"
 
-//
+// User's Data Structure
 #define MAX_NAME_LENGTH 50
 #define MAX_EMAIL_LENGTH 50
 #define MAX_PASSWORD_LENGTH 50
@@ -60,6 +60,8 @@ void addStudentMarks(const char *teacherEmail);
 void manageFees(const char *adminEmail);
 int deleteUserData(const char *userEmail);
 void showUserDeletionMenu();
+void viewMyAttendance(const char *studentEmail);
+void markStudentAttendance(const char *teacherEmail);
 
 int main()
 {
@@ -462,8 +464,7 @@ void showStudentMenu(const User *user)
             pressKeyToContinue();
             break;
         case 5:
-            printf(YELLOW "\n[Attendance Module] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
+            viewMyAttendance(user->email);
             break;
         case 6:
             printf(YELLOW "\n[Assignment Submission] - Coming Soon!\n" RESET);
@@ -517,8 +518,6 @@ void showTeacherMenu(const User *user)
         {
         case 1: // Manage Student Marks
             addStudentMarks(user->email);
-            // printf(YELLOW "\n[Marks Management] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
             break;
         case 2:
             printf(YELLOW "\n[Assignment Creation] - Coming Soon!\n" RESET);
@@ -529,8 +528,7 @@ void showTeacherMenu(const User *user)
             pressKeyToContinue();
             break;
         case 4:
-            printf(YELLOW "\n[Attendance Management] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
+            markStudentAttendance(user->email);
             break;
         case 5:
             printf(YELLOW "\n[Assignment Grading] - Coming Soon!\n" RESET);
@@ -603,10 +601,12 @@ void showAdminMenu(const User *user)
             char newRole[MAX_ROLE_LENGTH];
             int roleChoice;
 
-            do {
+            do
+            {
                 printf(CYAN "Enter user email: " RESET);
                 takeInput(email, MAX_EMAIL_LENGTH);
-                if (strlen(email) == 0) {
+                if (strlen(email) == 0)
+                {
                     printf(RED "Error: Email cannot be empty.\n" RESET);
                 }
             } while (strlen(email) == 0);
@@ -1246,7 +1246,7 @@ int deleteUserData(const char *userEmail)
         }
 #endif
 
-        Sleep(1000); // Wait 1 second
+        Sleep(1000); // Wait a second
     }
 
     printf(RED "Proceeding with deletion...\n" RESET);
@@ -1358,7 +1358,7 @@ void showUserDeletionMenu()
     // If user presses enter (empty input) or types 'y' or 'Y', proceed
     if (strlen(confirm) == 0 || strcmp(confirm, "y") == 0 || strcmp(confirm, "Y") == 0)
     {
-        // continue to deletion
+        // continue --> deletion
     }
     else if (strcmp(confirm, "n") == 0 || strcmp(confirm, "N") == 0)
     {
@@ -1393,5 +1393,367 @@ void showUserDeletionMenu()
         printf(GREEN "User deletion completed!\n" RESET);
     }
 
+    pressKeyToContinue();
+}
+
+void viewMyAttendance(const char *studentEmail)
+{
+    clearScreen();
+    // Hardcoded subjects list
+    char subjects[][20] = {"English", "Math", "Science", "History", "Computer"};
+    int numSubjects = 5;
+    printf(CYAN "=== My Attendance Record ===\n" RESET);
+    printf("Student: %s\n\n", studentEmail);
+
+    FILE *file = fopen(ATTENDANCE_FILE, "r");
+    if (file == NULL)
+    {
+        printf(RED "No attendance records found!\n" RESET);
+        printf(YELLOW "Contact your teacher to mark attendance.\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    char line[MAX_LINE_LENGTH];
+    char email[MAX_EMAIL_LENGTH];
+    int present[5] = {0};                     // Present days for each subject
+    int total[5] = {120, 120, 120, 120, 120}; // Total days for each subject (default 120)
+    int found = 0;
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        // Parse: email,english_present,english_total,math_present,math_total,...
+        if (sscanf(line, "%49[^,],%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+                   email, &present[0], &total[0], &present[1], &total[1],
+                   &present[2], &total[2], &present[3], &total[3],
+                   &present[4], &total[4]) >= 1)
+        {
+            if (strcmp(email, studentEmail) == 0)
+            {
+                found = 1;
+                break;
+            }
+        }
+    }
+    fclose(file);
+
+    if (!found)
+    {
+        printf(YELLOW "No attendance record found for your account!\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    // Display attendance table
+    printf(BLUE "Subject          Present/Total    Percentage    Status\n");
+    printf("-------------------------------------------------------\n" RESET);
+
+    int totalPresent = 0, totalDays = 0;
+
+    for (int i = 0; i < numSubjects; i++)
+    {
+        float percentage = (total[i] > 0) ? (float)present[i] * 100 / total[i] : 0;
+        char status[20];
+
+        if (percentage >= 75)
+        {
+            strcpy(status, "Good");
+            printf(GREEN "%-15s  %3d/%-3d        %6.1f%%      %s\n" RESET,
+                   subjects[i], present[i], total[i], percentage, status);
+        }
+        else if (percentage >= 65)
+        {
+            strcpy(status, "Warning");
+            printf(YELLOW "%-15s  %3d/%-3d        %6.1f%%      %s\n" RESET,
+                   subjects[i], present[i], total[i], percentage, status);
+        }
+        else
+        {
+            strcpy(status, "Critical");
+            printf(RED "%-15s  %3d/%-3d        %6.1f%%      %s\n" RESET,
+                   subjects[i], present[i], total[i], percentage, status);
+        }
+
+        totalPresent += present[i];
+        totalDays += total[i];
+    }
+
+    // Overall attendance
+    if (totalDays > 0)
+    {
+        float overallPercentage = (float)totalPresent * 100 / totalDays;
+        printf("-------------------------------------------------------\n");
+        if (overallPercentage >= 75)
+        {
+            printf(GREEN "Overall:         %3d/%-3d        %6.1f%%      Good\n" RESET,
+                   totalPresent, totalDays, overallPercentage);
+        }
+        else if (overallPercentage >= 65)
+        {
+            printf(YELLOW "Overall:         %3d/%-3d        %6.1f%%      Warning\n" RESET,
+                   totalPresent, totalDays, overallPercentage);
+        }
+        else
+        {
+            printf(RED "Overall:         %3d/%-3d        %6.1f%%      Critical\n" RESET,
+                   totalPresent, totalDays, overallPercentage);
+        }
+
+        // Attendance advice
+        printf("\n");
+        if (overallPercentage >= 75)
+        {
+            printf(GREEN "%c Excellent attendance! Keep it up!\n" RESET,251);
+        }
+        else if (overallPercentage >= 65)
+        {
+            printf(YELLOW "%c Warning: Attendance below 75%%. Please improve.\n" RESET,127);
+        }
+        else
+        {
+            printf(RED "%c Critical: Attendance below 65%%. Risk of academic issues!\n" RESET,127);
+        }
+    }
+
+    pressKeyToContinue();
+}
+
+// Function for teachers to mark attendance
+void markStudentAttendance(const char *teacherEmail)
+{
+    clearScreen();
+    // Hardcoded subjects list
+    char subjects[][20] = {"English", "Math", "Science", "History", "Computer"};
+    int numSubjects = 5;
+    printf(CYAN "=== Mark Student Attendance ===\n" RESET);
+
+    char studentEmail[MAX_EMAIL_LENGTH];
+    int subjectChoice, attendanceChoice;
+
+    printf(CYAN "Enter student email: " RESET);
+    takeInput(studentEmail, sizeof(studentEmail));
+
+    // Check if student exists
+    if (!checkEmailExists(studentEmail))
+    {
+        printf(RED "Student not found!\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    // Show subjects
+    printf(CYAN "\nSelect Subject:\n" RESET);
+    for (int i = 0; i < numSubjects; i++)
+    {
+        printf("%d. %s\n", i + 1, subjects[i]);
+    }
+
+    printf(CYAN "Enter subject choice (1-%d): " RESET, numSubjects);
+    if (scanf("%d", &subjectChoice) != 1 || subjectChoice < 1 || subjectChoice > numSubjects)
+    {
+        printf(RED "Invalid choice!\n" RESET);
+        while (getchar() != '\n')
+            ;
+        pressKeyToContinue();
+        return;
+    }
+    while (getchar() != '\n')
+        ;
+
+    // Attendance options
+    printf(CYAN "\nAttendance Action:\n" RESET);
+    printf("1. Update Present Days\n");
+    printf("2. Update Total Days\n");
+    printf(CYAN "Enter choice (1-2): " RESET);
+
+    if (scanf("%d", &attendanceChoice) != 1 || attendanceChoice < 1 || attendanceChoice > 2)
+    {
+        printf(RED "Invalid choice!\n" RESET);
+        while (getchar() != '\n')
+            ;
+        pressKeyToContinue();
+        return;
+    }
+    while (getchar() != '\n')
+        ;
+
+    // Read existing attendance data
+    FILE *file = fopen(ATTENDANCE_FILE, "r");
+    FILE *tempFile = fopen("temp_attendance.txt", "w");
+
+    if (tempFile == NULL)
+    {
+        printf(RED "Error creating temporary file!\n" RESET);
+        if (file)
+            fclose(file);
+        pressKeyToContinue();
+        return;
+    }
+
+    char line[MAX_LINE_LENGTH];
+    char email[MAX_EMAIL_LENGTH];
+    int present[5] = {0}, total[5] = {120, 120, 120, 120, 120}; // Default 120 total days
+    int studentFound = 0;
+
+    if (file != NULL)
+    {
+        while (fgets(line, sizeof(line), file) != NULL)
+        {
+            if (sscanf(line, "%49[^,],%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+                       email, &present[0], &total[0], &present[1], &total[1],
+                       &present[2], &total[2], &present[3], &total[3],
+                       &present[4], &total[4]) >= 1)
+            {
+                if (strcmp(email, studentEmail) == 0)
+                {
+                    studentFound = 1;
+
+                    // Update based on choice
+                    switch (attendanceChoice)
+                    {
+                    case 1: // Update Present Days
+                    {
+                        int newPresentDays;
+                        printf(CYAN "Current present days for %s in %s: %d/%d\n" RESET,
+                               studentEmail, subjects[subjectChoice - 1], present[subjectChoice - 1], total[subjectChoice - 1]);
+                        printf(CYAN "Enter number of present days (0-%d): " RESET, total[subjectChoice - 1]);
+                        
+                        int inputResult = scanf("%d", &newPresentDays);
+                        while (getchar() != '\n'); // Clear input buffer
+                        
+                        if (inputResult == 1 && newPresentDays >= 0 && newPresentDays <= total[subjectChoice - 1])
+                        {
+                            present[subjectChoice - 1] = newPresentDays;
+                            printf(GREEN "Present days updated for %s in %s (Present: %d/%d)\n" RESET,
+                                   studentEmail, subjects[subjectChoice - 1],
+                                   present[subjectChoice - 1], total[subjectChoice - 1]);
+                        }
+                        else
+                        {
+                            printf(RED "Invalid number of present days! Must be between 0 and %d.\n" RESET, total[subjectChoice - 1]);
+                        }
+                        break;
+                    }
+
+                    case 2: // Update Total Days
+                    {
+                        int newTotal;
+                        printf(CYAN "Current total days for %s: %d\n" RESET,
+                               subjects[subjectChoice - 1], total[subjectChoice - 1]);
+                        printf(CYAN "Enter new total days (1-365): " RESET);
+                        
+                        // Better input validation
+                        int inputResult = scanf("%d", &newTotal);
+                        while (getchar() != '\n'); // Clear input buffer
+                        
+                        if (inputResult == 1 && newTotal > 0 && newTotal <= 365)
+                        {
+                            total[subjectChoice - 1] = newTotal;
+                            // Ensure present days don't exceed new total
+                            if (present[subjectChoice - 1] > newTotal)
+                                present[subjectChoice - 1] = newTotal;
+                            printf(GREEN "Total days updated for %s in %s (Present: %d/%d)\n" RESET,
+                                   studentEmail, subjects[subjectChoice - 1],
+                                   present[subjectChoice - 1], total[subjectChoice - 1]);
+                        }
+                        else
+                        {
+                            printf(RED "Invalid total days! Please enter a number between 1 and 365.\n" RESET);
+                        }
+                        break;
+                    }
+                    default:
+                        break;
+                    }
+                }
+                // Write updated or unchanged record
+                fprintf(tempFile, "%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+                        email, present[0], total[0], present[1], total[1],
+                        present[2], total[2], present[3], total[3],
+                        present[4], total[4]);
+            }
+            else
+            {
+                // Write lines that don't match expected format as-is
+                fprintf(tempFile, "%s", line);
+            }
+        }
+        fclose(file);
+    }
+
+    // If student not found, add new record
+    if (!studentFound)
+    {
+        // Initialize with default values
+        for (int i = 0; i < 5; i++)
+        {
+            present[i] = 0;
+            total[i] = 120;
+        }
+        
+        // Handle the selected action for new student
+        switch (attendanceChoice)
+        {
+        case 1: // Update Present Days
+        {
+            int newPresentDays;
+            printf(CYAN "Enter number of present days for %s in %s (0-%d): " RESET,
+                   studentEmail, subjects[subjectChoice - 1], total[subjectChoice - 1]);
+            
+            int inputResult = scanf("%d", &newPresentDays);
+            while (getchar() != '\n'); // Clear input buffer
+            
+            if (inputResult == 1 && newPresentDays >= 0 && newPresentDays <= total[subjectChoice - 1])
+            {
+                present[subjectChoice - 1] = newPresentDays;
+                printf(GREEN "New student record created. Present days set for %s in %s (Present: %d/%d)\n" RESET,
+                       studentEmail, subjects[subjectChoice - 1], newPresentDays, total[subjectChoice - 1]);
+            }
+            else
+            {
+                printf(RED "Invalid number of present days! Using default value of 0.\n" RESET);
+                printf(GREEN "New student record created with default values (Present: 0/%d)\n" RESET, total[subjectChoice - 1]);
+            }
+            break;
+        }
+            
+        case 2: // Update Total Days
+        {
+            int newTotal;
+            printf(CYAN "Enter total days for %s (new student): " RESET, subjects[subjectChoice - 1]);
+            
+            int inputResult = scanf("%d", &newTotal);
+            while (getchar() != '\n'); // Clear input buffer
+            
+            if (inputResult == 1 && newTotal > 0 && newTotal <= 365)
+            {
+                total[subjectChoice - 1] = newTotal;
+                printf(GREEN "New student record created. Total days set for %s in %s (Present: 0/%d)\n" RESET,
+                       studentEmail, subjects[subjectChoice - 1], newTotal);
+            }
+            else
+            {
+                printf(RED "Invalid total days! Using default value of 120.\n" RESET);
+                printf(GREEN "New student record created with default values (Present: 0/120)\n" RESET);
+            }
+            break;
+        }
+        default:
+            break;
+        }
+        
+        fprintf(tempFile, "%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+                studentEmail, present[0], total[0], present[1], total[1],
+                present[2], total[2], present[3], total[3],
+                present[4], total[4]);
+    }
+
+    fclose(tempFile);
+
+    // Replace original file
+    remove(ATTENDANCE_FILE);
+    rename("temp_attendance.txt", ATTENDANCE_FILE);
+
+    printf(GREEN "Attendance record updated successfully!\n" RESET);
     pressKeyToContinue();
 }
