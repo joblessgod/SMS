@@ -1,4 +1,4 @@
-# Student Management System `v1.4.5` (updated)
+# Student Management System `v2.1.1` (updated)
 
 A simple, efficient command-line student management application built in C.
 
