@@ -2,12 +2,14 @@
 #include <stdio.h>
 #include <windows.h>
 #include <conio.h>
+#include <time.h>
+#include <stdlib.h>
 
 // Custom Libraries
-#include "mainMenu.h"
-#include "helper.h"
+#include "library/mainMenu.h"
+#include "library/helper.h"
 
-// Custom Colors
+// Color Definitions
 #define RESET "\033[0m"
 #define RED "\033[31m"
 #define CYAN "\033[36m"
@@ -16,7 +18,7 @@
 #define BLUE "\033[34m"
 #define MAGENTA "\033[35m"
 
-// User's Data Structure
+// User's structures and constants
 #define MAX_NAME_LENGTH 50
 #define MAX_EMAIL_LENGTH 50
 #define MAX_PASSWORD_LENGTH 50
@@ -24,11 +26,13 @@
 #define MAX_ROLE_LENGTH 20
 #define MAX_LINE_LENGTH 300
 
+// File names for storing data
 #define USER_FILE "users.txt"
 #define MARKS_FILE "marks.txt"
 #define FEES_FILE "fees.txt"
 #define ATTENDANCE_FILE "attendance.txt"
 
+// USER's data strucutre
 typedef struct
 {
     char fullName[MAX_NAME_LENGTH];
@@ -38,7 +42,7 @@ typedef struct
     char phone[MAX_PHONE_LENGTH];
 } User;
 
-// Function prototypes
+// User's prototypes
 int checkEmailExists(const char *email);
 int signupUser(const User *user);
 int loginUser(const char *email, const char *password, User *loggedInUser);
@@ -47,22 +51,42 @@ int isValidEmail(const char *email);
 int isValidPhone(const char *phone);
 void createDefaultAdmin();
 
+// System's prototype
 void showRoleBasedMenu(const User *user);
 void showStudentMenu(const User *user);
 void showTeacherMenu(const User *user);
 void showAdminMenu(const User *user);
-int changeUserRole(const char *email, const char *newRole);
-void listAllUsers();
+void generateMarksheet(const User *currentUser);
+int getStudentMarksForMarksheet(const char *email, int marks[5]);
+int getStudentAttendanceForMarksheet(const char *email, int present[5], int total[5]);
+int getStudentFeesForMarksheet(const char *email, float amounts[5], float paid[5]);
+User *findStudentByEmail(const char *email);
 
+void generateUserReport(const User *user);
+void generateStudentReport(const User *user);
+void generateTeacherReport(const User *user);
+void generateAdminReport(const User *user);
+
+// Student's functions prototype
+void listAllUsers();
 void viewMyMarks(const char *studentEmail);
 void viewMyFeeStatus(const char *studentEmail);
+void viewMyAttendance(const char *studentEmail);
+
+// Teacher's functions prototype
 void addStudentMarks(const char *teacherEmail);
+void markStudentAttendance(const char *teacherEmail);
+void listStudentOnly();
+
+// Admin's functions prototype
+int changeUserRole(const char *email, const char *newRole);
 void manageFees(const char *adminEmail);
 int deleteUserData(const char *userEmail);
 void showUserDeletionMenu();
-void viewMyAttendance(const char *studentEmail);
-void markStudentAttendance(const char *teacherEmail);
+void listTeacherOnly();
+void listAdminOnly();
 
+// THE MAIN FUNCTION - GOAT
 int main()
 {
     SetConsoleTitle("Student Management System | Team Sapphire");
@@ -221,6 +245,7 @@ int main()
     return 0;
 }
 
+// Checks if your input email already exits in database or not
 int checkEmailExists(const char *email)
 {
     FILE *file = fopen(USER_FILE, "r");
@@ -250,6 +275,8 @@ int checkEmailExists(const char *email)
     fclose(file);
     return 0; // Email doesn't exist
 }
+
+// Checks if your input email is valid or not
 int isValidEmail(const char *email)
 {
     // Simple email validation - contains @ and at least one dot after @
@@ -263,11 +290,12 @@ int isValidEmail(const char *email)
     return (dot != NULL && dot > atSign + 1 && strlen(dot) > 1);
 }
 
+// Checks if your input phone number is valid or not
 int isValidPhone(const char *phone)
 {
     // Simple phone validation - only digits and reasonable length
     int len = strlen(phone);
-    if (len < 7 || len > 11)
+    if (len == 10)
     {
         return 0;
     }
@@ -282,6 +310,7 @@ int isValidPhone(const char *phone)
     return 1;
 }
 
+// Grabs User info. Creates account in database and Logs in through it.
 int signupUser(const User *user)
 {
     FILE *file = fopen(USER_FILE, "a");
@@ -309,6 +338,8 @@ int signupUser(const User *user)
         return 0;
     }
 }
+
+// Grabs User info. Logs in through database
 int loginUser(const char *email, const char *password, User *loggedInUser)
 {
     FILE *file = fopen(USER_FILE, "r");
@@ -341,6 +372,7 @@ int loginUser(const char *email, const char *password, User *loggedInUser)
     return 0; // Login failed
 }
 
+// Grabs User info. Throws in format
 void displayUserInfo(const User *user)
 {
     clearScreen();
@@ -352,6 +384,7 @@ void displayUserInfo(const User *user)
     printf("Role:  %s\n", user->role);
 }
 
+// creates a default id pass for admin login
 void createDefaultAdmin()
 {
     FILE *file = fopen(USER_FILE, "r");
@@ -392,6 +425,7 @@ void createDefaultAdmin()
     }
 }
 
+// Shows menu via user's role
 void showRoleBasedMenu(const User *user)
 {
 
@@ -413,6 +447,7 @@ void showRoleBasedMenu(const User *user)
     }
 }
 
+// Student's Menu
 void showStudentMenu(const User *user)
 {
     int choice;
@@ -425,12 +460,10 @@ void showStudentMenu(const User *user)
         printf("|            STUDENT MENU             |\n");
         printf("|-------------------------------------|\n");
         printf("| 1. View My Marks                    |\n");
-        printf("| 2. View My Assignments              |\n");
-        printf("| 3. View My Fee Status               |\n");
-        printf("| 4. Update Profile                   |\n"); // module remove
-        printf("| 5. View My Attendance               |\n");
-        printf("| 6. Submit Assignment                |\n"); // module remove
-        printf("| 7. Logout                           |\n");
+        printf("| 2. View My Fee Status               |\n");
+        printf("| 3. View My Attendance               |\n");
+        printf("| 4. Generate Marksheet               |\n");
+        printf("| 5. Logout                           |\n");
         printf("|-------------------------------------|\n" RESET);
         printf(CYAN "Enter your choice: " RESET);
 
@@ -448,29 +481,19 @@ void showStudentMenu(const User *user)
 
         switch (choice)
         {
-        case 1: // View My Marks
+        case 1:
             viewMyMarks(user->email);
             break;
         case 2:
-            printf(YELLOW "\n[Assignment Module] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
-            break;
-        case 3: // View My Fee Status
             viewMyFeeStatus(user->email);
-            pressKeyToContinue();
             break;
-        case 4:
-            printf(YELLOW "\n[Profile Update] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
-            break;
-        case 5:
+        case 3:
             viewMyAttendance(user->email);
             break;
-        case 6:
-            printf(YELLOW "\n[Assignment Submission] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
+        case 4:
+            generateMarksheet(user);
             break;
-        case 7:
+        case 5:
             printf(GREEN "\nLogging out...\n" RESET);
             return;
         default:
@@ -480,6 +503,7 @@ void showStudentMenu(const User *user)
     } while (choice != 7);
 }
 
+// Teacher's Menu
 void showTeacherMenu(const User *user)
 {
     int choice;
@@ -491,14 +515,12 @@ void showTeacherMenu(const User *user)
         printf(MAGENTA "|-------------------------------------|\n");
         printf("|            TEACHER MENU             |\n");
         printf("|-------------------------------------|\n");
-        printf("| 1. Manage Student Marks             |\n");
-        printf("| 2. Create/View Assignments          |\n");
-        printf("| 3. View Student List                |\n");
-        printf("| 4. Mark Attendance                  |\n");
-        printf("| 5. Grade Assignments                |\n");
-        printf("| 6. Generate Reports                 |\n");
-        printf("| 7. Update Profile                   |\n"); // module remove
-        printf("| 8. Logout                           |\n");
+        printf("| 1. View Student List                |\n");
+        printf("| 2. Manage Marks                     |\n");
+        printf("| 3. Manage Attendance                |\n");
+        printf("| 4. Generate Reports                 |\n");
+        printf("| 5. Generate Marksheet               |\n");
+        printf("| 6. Logout                           |\n");
         printf("|-------------------------------------|\n" RESET);
         printf(CYAN "Enter your choice: " RESET);
 
@@ -516,33 +538,22 @@ void showTeacherMenu(const User *user)
 
         switch (choice)
         {
-        case 1: // Manage Student Marks
-            addStudentMarks(user->email);
+        case 1:
+            listStudentOnly();
             break;
         case 2:
-            printf(YELLOW "\n[Assignment Creation] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
+            addStudentMarks(user->email);
             break;
         case 3:
-            printf(YELLOW "\n[Student List] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
-            break;
-        case 4:
             markStudentAttendance(user->email);
             break;
+        case 4:
+            generateUserReport(user);
+            break;
         case 5:
-            printf(YELLOW "\n[Assignment Grading] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
+            generateMarksheet(user);
             break;
         case 6:
-            printf(YELLOW "\n[Report Generation] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
-            break;
-        case 7:
-            printf(YELLOW "\n[Profile Update] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
-            break;
-        case 8:
             printf(GREEN "\nLogging out...\n" RESET);
             return;
         default:
@@ -552,6 +563,7 @@ void showTeacherMenu(const User *user)
     } while (choice != 8);
 }
 
+// Admin's Menu
 void showAdminMenu(const User *user)
 {
     int choice;
@@ -563,16 +575,15 @@ void showAdminMenu(const User *user)
         printf(RED "|-------------------------------------|\n");
         printf("|             ADMIN MENU              |\n");
         printf("|-------------------------------------|\n");
-        printf("| 1. User Management                  |\n"); // module remove
-        printf("| 2. Change User Roles                |\n");
-        printf("| 3. View All Users                   |\n");
-        printf("| 4. Manage Student Records           |\n");
-        printf("| 5. Manage Teacher Records           |\n");
-        printf("| 6. Fee Management                   |\n");
-        printf("| 7. System Reports                   |\n");
-        printf("| 8. Database Backup                  |\n"); // module remove
-        printf("| 9. Settings                         |\n"); // module remove
-        printf("| 10. Logout                          |\n");
+        printf("| 1. User Management                  |\n");
+        printf("| 2. Role Management                  |\n");
+        printf("| 3. Fee Management                   |\n");
+        printf("| 4. View All Users                   |\n");
+        printf("| 5. List of Student Only             |\n");
+        printf("| 6. List of Teacher Only             |\n");
+        printf("| 7. List of Admin Only               |\n");
+        printf("| 8. Generate Reports                 |\n");
+        printf("| 9. Logout                           |\n");
         printf("|-------------------------------------|\n" RESET);
         printf(CYAN "Enter your choice: " RESET);
 
@@ -661,32 +672,24 @@ void showAdminMenu(const User *user)
         }
         break;
         case 3:
-            listAllUsers();
-            break;
-        case 4:
-            printf(YELLOW "\n[Student Records Management] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
-            break;
-        case 5:
-            printf(YELLOW "\n[Teacher Records Management] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
-            break;
-        case 6: // Fee Management
             manageFees(user->email);
             break;
+        case 4:
+            listAllUsers();
+            break;
+        case 5:
+            listStudentOnly();
+            break;
+        case 6:
+            listTeacherOnly();
+            break;
         case 7:
-            printf(YELLOW "\n[System Reports] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
+            listAdminOnly();
             break;
         case 8:
-            printf(YELLOW "\n[Database Backup] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
+            generateUserReport(user);
             break;
         case 9:
-            printf(YELLOW "\n[Settings] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
-            break;
-        case 10:
             printf(GREEN "\nLogging out...\n" RESET);
             return;
         default:
@@ -695,6 +698,8 @@ void showAdminMenu(const User *user)
         }
     } while (choice != 10);
 }
+
+// change user's role
 int changeUserRole(const char *email, const char *newRole)
 {
     FILE *file = fopen(USER_FILE, "r");
@@ -747,6 +752,7 @@ int changeUserRole(const char *email, const char *newRole)
     pressKeyToContinue();
 }
 
+// Shows all users without filter
 void listAllUsers()
 {
 
@@ -793,6 +799,130 @@ void listAllUsers()
     pressKeyToContinue();
 }
 
+// Shows only Student's list
+void listStudentOnly()
+{
+
+    clearScreen();
+    printf(CYAN "=== Student List ===\n" RESET);
+    FILE *file = fopen(USER_FILE, "r");
+    if (file == NULL)
+    {
+        printf(RED "No users found or unable to open file.\n" RESET);
+        return;
+    }
+    char line[MAX_LINE_LENGTH];
+    User tempUser;
+    int userCount = 0;
+    printf(BLUE "%-4s %-20s %-25s %-15s %-10s\n", "No.", "Name", "Email", "Phone", "Role");
+    printf("---------------------------------------------------------------------\n" RESET);
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        if (sscanf(line, "%49[^,],%49[^,],%19[^,],%19[^,],%49[^\n]",
+                   tempUser.fullName, tempUser.email, tempUser.phone,
+                   tempUser.role, tempUser.password) == 5)
+        {
+
+            if (strcmp(tempUser.role, "Student") == 0)
+            {
+                userCount++;
+                printf("%-4d %-20s %-25s %-15s ", userCount, tempUser.fullName, tempUser.email, tempUser.phone);
+            }
+            if (strcmp(tempUser.role, "Student") == 0)
+            {
+                printf(BLUE "%-10s\n" RESET, tempUser.role);
+            }
+        }
+    }
+    fclose(file);
+    printf(CYAN "\nTotal Users: %d\n" RESET, userCount);
+    pressKeyToContinue();
+}
+
+// Shows only Teacher's list
+void listTeacherOnly()
+{
+
+    clearScreen();
+    printf(CYAN "=== Teacher List ===\n" RESET);
+    FILE *file = fopen(USER_FILE, "r");
+    if (file == NULL)
+    {
+        printf(RED "No users found or unable to open file.\n" RESET);
+        return;
+    }
+    char line[MAX_LINE_LENGTH];
+    User tempUser;
+    int userCount = 0;
+    printf(BLUE "%-4s %-20s %-25s %-15s %-10s\n", "No.", "Name", "Email", "Phone", "Role");
+    printf("---------------------------------------------------------------------\n" RESET);
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        if (sscanf(line, "%49[^,],%49[^,],%19[^,],%19[^,],%49[^\n]",
+                   tempUser.fullName, tempUser.email, tempUser.phone,
+                   tempUser.role, tempUser.password) == 5)
+        {
+
+            if (strcmp(tempUser.role, "Teacher") == 0)
+            {
+                userCount++;
+                printf("%-4d %-20s %-25s %-15s ", userCount, tempUser.fullName, tempUser.email, tempUser.phone);
+            }
+            if (strcmp(tempUser.role, "Teacher") == 0)
+            {
+                printf(MAGENTA "%-10s\n" RESET, tempUser.role);
+            }
+        }
+    }
+    fclose(file);
+    printf(CYAN "\nTotal Users: %d\n" RESET, userCount);
+    pressKeyToContinue();
+}
+
+// Shows only Admin's list
+void listAdminOnly()
+{
+
+    clearScreen();
+    printf(CYAN "=== Admin List ===\n" RESET);
+    FILE *file = fopen(USER_FILE, "r");
+    if (file == NULL)
+    {
+        printf(RED "No users found or unable to open file.\n" RESET);
+        return;
+    }
+    char line[MAX_LINE_LENGTH];
+    User tempUser;
+    int userCount = 0;
+    printf(BLUE "%-4s %-20s %-25s %-15s %-10s\n", "No.", "Name", "Email", "Phone", "Role");
+    printf("---------------------------------------------------------------------\n" RESET);
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        if (sscanf(line, "%49[^,],%49[^,],%19[^,],%19[^,],%49[^\n]",
+                   tempUser.fullName, tempUser.email, tempUser.phone,
+                   tempUser.role, tempUser.password) == 5)
+        {
+
+            if (strcmp(tempUser.role, "Admin") == 0)
+            {
+                userCount++;
+                printf("%-4d %-20s %-25s %-15s ", userCount, tempUser.fullName, tempUser.email, tempUser.phone);
+            }
+            if (strcmp(tempUser.role, "Admin") == 0)
+            {
+                printf(RED "%-10s\n" RESET, tempUser.role);
+            }
+        }
+    }
+    fclose(file);
+    printf(CYAN "\nTotal Users: %d\n" RESET, userCount);
+    pressKeyToContinue();
+}
+
+// Show Student's marks
 void viewMyMarks(const char *studentEmail)
 {
     clearScreen();
@@ -880,7 +1010,7 @@ void viewMyMarks(const char *studentEmail)
     pressKeyToContinue();
 }
 
-// Updated viewMyFeeStatus function
+// Show Student's fees status and remaining (for studnet)
 void viewMyFeeStatus(const char *studentEmail)
 {
     clearScreen();
@@ -920,6 +1050,7 @@ void viewMyFeeStatus(const char *studentEmail)
     if (!found)
     {
         printf(YELLOW "No fee records found for your account.\n" RESET);
+        pressKeyToContinue();
         return;
     }
 
@@ -959,7 +1090,7 @@ void viewMyFeeStatus(const char *studentEmail)
     pressKeyToContinue();
 }
 
-// Updated addStudentMarks function (for teachers)
+// Teachers adds marks of subject fucntion (for teacher)
 void addStudentMarks(const char *teacherEmail)
 {
     clearScreen();
@@ -1080,7 +1211,7 @@ void addStudentMarks(const char *teacherEmail)
     pressKeyToContinue();
 }
 
-// Updated manageFees function (for admin)
+// Admin manage Fees function (for admin)
 void manageFees(const char *adminEmail)
 {
     clearScreen();
@@ -1340,7 +1471,7 @@ int deleteUserData(const char *userEmail)
     return 1;
 }
 
-// Function to show user deletion menu (call this from admin menu)
+// Function to show user deletion menu (for admin)
 void showUserDeletionMenu()
 {
     clearScreen();
@@ -1396,6 +1527,7 @@ void showUserDeletionMenu()
     pressKeyToContinue();
 }
 
+// show student's attendence with (for studnet)
 void viewMyAttendance(const char *studentEmail)
 {
     clearScreen();
@@ -1503,15 +1635,15 @@ void viewMyAttendance(const char *studentEmail)
         printf("\n");
         if (overallPercentage >= 75)
         {
-            printf(GREEN "%c Excellent attendance! Keep it up!\n" RESET,251);
+            printf(GREEN "%c Excellent attendance! Keep it up!\n" RESET, 251);
         }
         else if (overallPercentage >= 65)
         {
-            printf(YELLOW "%c Warning: Attendance below 75%%. Please improve.\n" RESET,127);
+            printf(YELLOW "%c Warning: Attendance below 75%%. Please improve.\n" RESET, 127);
         }
         else
         {
-            printf(RED "%c Critical: Attendance below 65%%. Risk of academic issues!\n" RESET,127);
+            printf(RED "%c Critical: Attendance below 65%%. Risk of academic issues!\n" RESET, 127);
         }
     }
 
@@ -1617,10 +1749,11 @@ void markStudentAttendance(const char *teacherEmail)
                         printf(CYAN "Current present days for %s in %s: %d/%d\n" RESET,
                                studentEmail, subjects[subjectChoice - 1], present[subjectChoice - 1], total[subjectChoice - 1]);
                         printf(CYAN "Enter number of present days (0-%d): " RESET, total[subjectChoice - 1]);
-                        
+
                         int inputResult = scanf("%d", &newPresentDays);
-                        while (getchar() != '\n'); // Clear input buffer
-                        
+                        while (getchar() != '\n')
+                            ; // Clear input buffer
+
                         if (inputResult == 1 && newPresentDays >= 0 && newPresentDays <= total[subjectChoice - 1])
                         {
                             present[subjectChoice - 1] = newPresentDays;
@@ -1641,11 +1774,12 @@ void markStudentAttendance(const char *teacherEmail)
                         printf(CYAN "Current total days for %s: %d\n" RESET,
                                subjects[subjectChoice - 1], total[subjectChoice - 1]);
                         printf(CYAN "Enter new total days (1-365): " RESET);
-                        
+
                         // Better input validation
                         int inputResult = scanf("%d", &newTotal);
-                        while (getchar() != '\n'); // Clear input buffer
-                        
+                        while (getchar() != '\n')
+                            ; // Clear input buffer
+
                         if (inputResult == 1 && newTotal > 0 && newTotal <= 365)
                         {
                             total[subjectChoice - 1] = newTotal;
@@ -1690,7 +1824,7 @@ void markStudentAttendance(const char *teacherEmail)
             present[i] = 0;
             total[i] = 120;
         }
-        
+
         // Handle the selected action for new student
         switch (attendanceChoice)
         {
@@ -1699,10 +1833,11 @@ void markStudentAttendance(const char *teacherEmail)
             int newPresentDays;
             printf(CYAN "Enter number of present days for %s in %s (0-%d): " RESET,
                    studentEmail, subjects[subjectChoice - 1], total[subjectChoice - 1]);
-            
+
             int inputResult = scanf("%d", &newPresentDays);
-            while (getchar() != '\n'); // Clear input buffer
-            
+            while (getchar() != '\n')
+                ; // Clear input buffer
+
             if (inputResult == 1 && newPresentDays >= 0 && newPresentDays <= total[subjectChoice - 1])
             {
                 present[subjectChoice - 1] = newPresentDays;
@@ -1716,15 +1851,16 @@ void markStudentAttendance(const char *teacherEmail)
             }
             break;
         }
-            
+
         case 2: // Update Total Days
         {
             int newTotal;
             printf(CYAN "Enter total days for %s (new student): " RESET, subjects[subjectChoice - 1]);
-            
+
             int inputResult = scanf("%d", &newTotal);
-            while (getchar() != '\n'); // Clear input buffer
-            
+            while (getchar() != '\n')
+                ; // Clear input buffer
+
             if (inputResult == 1 && newTotal > 0 && newTotal <= 365)
             {
                 total[subjectChoice - 1] = newTotal;
@@ -1741,7 +1877,7 @@ void markStudentAttendance(const char *teacherEmail)
         default:
             break;
         }
-        
+
         fprintf(tempFile, "%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
                 studentEmail, present[0], total[0], present[1], total[1],
                 present[2], total[2], present[3], total[3],
@@ -1755,5 +1891,533 @@ void markStudentAttendance(const char *teacherEmail)
     rename("temp_attendance.txt", ATTENDANCE_FILE);
 
     printf(GREEN "Attendance record updated successfully!\n" RESET);
+    pressKeyToContinue();
+}
+
+void generateUserReport(const User *user)
+{
+    clearScreen();
+    printf(CYAN "=== Generate User Report ===\n" RESET);
+
+    char targetEmail[MAX_EMAIL_LENGTH];
+    printf(CYAN "Enter user email to generate report: " RESET);
+    takeInput(targetEmail, sizeof(targetEmail));
+
+    if (strlen(targetEmail) == 0)
+    {
+        printf(RED "Error: Email cannot be empty.\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    // Check if the target user exists
+    if (!checkEmailExists(targetEmail))
+    {
+        printf(RED "Error: User with email '%s' not found.\n" RESET, targetEmail);
+        pressKeyToContinue();
+        return;
+    }
+
+    // Find the target user's role
+    FILE *file = fopen(USER_FILE, "r");
+    if (file == NULL)
+    {
+        printf(RED "Error: Unable to open user file.\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    char line[MAX_LINE_LENGTH];
+    User targetUser;
+    int found = 0;
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        if (sscanf(line, "%49[^,],%49[^,],%19[^,],%19[^,],%49[^\n]",
+                   targetUser.fullName, targetUser.email, targetUser.phone,
+                   targetUser.role, targetUser.password) == 5)
+        {
+            if (strcmp(targetUser.email, targetEmail) == 0)
+            {
+                found = 1;
+                break;
+            }
+        }
+    }
+    fclose(file);
+
+    if (!found)
+    {
+        printf(RED "Error: Unable to retrieve user information.\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    // Role-based access control
+    if (strcmp(user->role, "Teacher") == 0)
+    {
+        // Teachers can only generate reports for students
+        if (strcmp(targetUser.role, "Student") != 0)
+        {
+            printf(RED "Error: Teachers can only generate reports for students.\n" RESET);
+            printf(RED "Cannot generate report for %s role.\n" RESET, targetUser.role);
+            pressKeyToContinue();
+            return;
+        }
+
+        // Generate student report for teacher
+        clearScreen();
+        printf(BLUE "=====================================\n");
+        printf("       STUDENT REPORT (Teacher View) \n");
+        printf("=====================================\n" RESET);
+        generateStudentReport(&targetUser);
+    }
+    else if (strcmp(user->role, "Admin") == 0)
+    {
+        // Admins can generate reports for anyone
+        clearScreen();
+        // Color header based on role
+        if (strcmp(targetUser.role, "Student") == 0)
+        {
+            printf(BLUE "=====================================\n");
+            printf("       STUDENT REPORT (Admin View)   \n");
+            printf("=====================================\n" RESET);
+            generateStudentReport(&targetUser);
+        }
+        else if (strcmp(targetUser.role, "Teacher") == 0)
+        {
+            printf(MAGENTA "=====================================\n");
+            printf("       TEACHER REPORT (Admin View)   \n");
+            printf("=====================================\n" RESET);
+            generateTeacherReport(&targetUser);
+        }
+        else if (strcmp(targetUser.role, "Admin") == 0)
+        {
+            printf(RED "=====================================\n");
+            printf("        ADMIN REPORT (Admin View)    \n");
+            printf("=====================================\n" RESET);
+            generateAdminReport(&targetUser);
+        }
+        else
+        {
+            printf(RED "Error: Unknown user role '%s'\n" RESET, targetUser.role);
+        }
+    }
+    else
+    {
+        printf(RED "Error: Only Teachers and Admins can generate user reports.\n" RESET);
+    }
+
+    printf(CYAN "\n=====================================\n");
+    printf("         END OF REPORT               \n");
+    printf("=====================================\n" RESET);
+
+    pressKeyToContinue();
+}
+
+// Updated generateStudentReport function
+void generateStudentReport(const User *user)
+{
+    displayUserInfo(user);
+    printf(GREEN "\n=== ACADEMIC PERFORMANCE ===\n" RESET);
+    viewMyMarks(user->email);
+    viewMyAttendance(user->email);
+    viewMyFeeStatus(user->email);
+}
+
+// Updated generateTeacherReport function
+void generateTeacherReport(const User *user)
+{
+    displayUserInfo(user);
+    printf(MAGENTA "\n--- TEACHING SUMMARY ---\n" RESET);
+    printf("Current Semester: Active\n");
+    printf("Teaching Load:    Full Time\n");
+    printf("Office Hours:     Mon-Fri 10:00-12:00\n");
+}
+
+// Updated generateAdminReport function
+void generateAdminReport(const User *user)
+{
+    displayUserInfo(user);
+    printf(RED "\n--- ADMIN SUMMARY ---\n" RESET);
+    printf("Admin Level: Full Access\n");
+    printf("Department: System Administration\n");
+    printf("Last Login: Active Session\n");
+}
+
+// Function to get student marks using your existing file format
+int getStudentMarksForMarksheet(const char *email, int marks[5])
+{
+    FILE *file = fopen(MARKS_FILE, "r");
+    if (file == NULL)
+    {
+        for (int i = 0; i < 5; i++)
+            marks[i] = -1;
+        return 0;
+    }
+
+    char line[200];
+    char fileEmail[50];
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        if (sscanf(line, "%49[^,],%d,%d,%d,%d,%d",
+                   fileEmail, &marks[0], &marks[1], &marks[2], &marks[3], &marks[4]) >= 1)
+        {
+            if (strcmp(fileEmail, email) == 0)
+            {
+                fclose(file);
+                return 1;
+            }
+        }
+    }
+    fclose(file);
+
+    for (int i = 0; i < 5; i++)
+        marks[i] = -1;
+    return 0;
+}
+
+// Function to get student attendance using your existing file format
+int getStudentAttendanceForMarksheet(const char *email, int present[5], int total[5])
+{
+    FILE *file = fopen(ATTENDANCE_FILE, "r");
+    if (file == NULL)
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            present[i] = 0;
+            total[i] = 120;
+        }
+        return 0;
+    }
+
+    char line[MAX_LINE_LENGTH];
+    char fileEmail[MAX_EMAIL_LENGTH];
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        if (sscanf(line, "%49[^,],%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+                   fileEmail, &present[0], &total[0], &present[1], &total[1],
+                   &present[2], &total[2], &present[3], &total[3],
+                   &present[4], &total[4]) >= 1)
+        {
+            if (strcmp(fileEmail, email) == 0)
+            {
+                fclose(file);
+                return 1;
+            }
+        }
+    }
+    fclose(file);
+
+    for (int i = 0; i < 5; i++)
+    {
+        present[i] = 0;
+        total[i] = 120;
+    }
+    return 0;
+}
+
+// Function to get student fees using your existing file format
+int getStudentFeesForMarksheet(const char *email, float amounts[5], float paid[5])
+{
+    FILE *file = fopen(FEES_FILE, "r");
+    if (file == NULL)
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            amounts[i] = 0;
+            paid[i] = 0;
+        }
+        return 0;
+    }
+
+    char line[300];
+    char fileEmail[50];
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        if (sscanf(line, "%49[^,],%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+                   fileEmail, &amounts[0], &paid[0], &amounts[1], &paid[1],
+                   &amounts[2], &paid[2], &amounts[3], &paid[3],
+                   &amounts[4], &paid[4]) >= 1)
+        {
+            if (strcmp(fileEmail, email) == 0)
+            {
+                fclose(file);
+                return 1;
+            }
+        }
+    }
+    fclose(file);
+
+    for (int i = 0; i < 5; i++)
+    {
+        amounts[i] = 0;
+        paid[i] = 0;
+    }
+    return 0;
+}
+
+// Function to find user by email using your existing file format
+User *findStudentByEmail(const char *email)
+{
+    static User foundUser;
+    FILE *file = fopen(USER_FILE, "r");
+    if (file == NULL)
+    {
+        return NULL;
+    }
+
+    char line[MAX_LINE_LENGTH];
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        if (sscanf(line, "%49[^,],%49[^,],%19[^,],%19[^,],%49[^\n]",
+                   foundUser.fullName, foundUser.email, foundUser.phone,
+                   foundUser.role, foundUser.password) == 5)
+        {
+            if (strcmp(foundUser.email, email) == 0)
+            {
+                fclose(file);
+                return &foundUser;
+            }
+        }
+    }
+    fclose(file);
+    return NULL;
+}
+
+// Main Marksheet Generator Function
+void generateMarksheet(const User *currentUser)
+{
+    char targetEmail[MAX_EMAIL_LENGTH];
+
+    // Determine whose marksheet to generate based on current user's role
+    if (strcmp(currentUser->role, "Student") == 0)
+    {
+        // If student, generate their own marksheet
+        strcpy(targetEmail, currentUser->email);
+    }
+    else if (strcmp(currentUser->role, "Teacher") == 0 || strcmp(currentUser->role, "Admin") == 0)
+    {
+        // If teacher or admin, ask for student email
+        clearScreen();
+        printf(CYAN "=== MARKSHEET GENERATOR ===\n" RESET);
+        printf(CYAN "Enter student's email: " RESET);
+        takeInput(targetEmail, MAX_EMAIL_LENGTH);
+
+        if (strlen(targetEmail) == 0)
+        {
+            printf(RED "Error: Email cannot be empty.\n" RESET);
+            pressKeyToContinue();
+            return;
+        }
+    }
+    else
+    {
+        printf(RED "Access denied!\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    // Check if student exists
+    if (!checkEmailExists(targetEmail))
+    {
+        printf(RED "Student not found!\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    // Find student data
+    User *student = findStudentByEmail(targetEmail);
+    if (student == NULL || strcmp(student->role, "Student") != 0)
+    {
+        printf(RED "Invalid student account!\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    // Get academic data
+    int marks[5];
+    int present[5], total[5];
+    float amounts[5], paid[5];
+
+    getStudentMarksForMarksheet(targetEmail, marks);
+    getStudentAttendanceForMarksheet(targetEmail, present, total);
+    getStudentFeesForMarksheet(targetEmail, amounts, paid);
+
+    char subjects[][20] = {"English", "Math", "Science", "History", "Computer"};
+
+    // Calculate totals
+    float totalMarks = 0, validSubjects = 0;
+    int totalPresent = 0, totalDays = 0;
+    float totalFeeAmount = 0, totalFeePaid = 0;
+
+    for (int i = 0; i < 5; i++)
+    {
+        if (marks[i] != -1)
+        {
+            totalMarks += marks[i];
+            validSubjects++;
+        }
+        totalPresent += present[i];
+        totalDays += total[i];
+        totalFeeAmount += amounts[i];
+        totalFeePaid += paid[i];
+    }
+
+    float percentage = (validSubjects > 0) ? (totalMarks / (validSubjects * 100)) * 100 : 0;
+    float attendancePercentage = (totalDays > 0) ? ((float)totalPresent / totalDays) * 100 : 0;
+    float feeDue = totalFeeAmount - totalFeePaid;
+
+    // Determine result
+    char *result = "FAIL";
+    if (percentage >= 40 && attendancePercentage >= 75)
+    {
+        result = "PASS";
+    }
+
+    // Get current date
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+
+    // Generate simple marksheet
+    clearScreen();
+    printf("\n");
+    printf("================================================================================\n");
+    printf("                               POKHARA UNIVERSITY                               \n");
+    printf("                      DEPARTMENT OF B.COMPUTER APPLICATION                      \n");
+    printf("                              STUDENT MARKSHEET                                 \n");
+    printf("================================================================================\n");
+    printf(" Date: %02d/%02d/%d                          Academic Session: 2024-25         \n",
+           tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
+    printf("================================================================================\n" RESET);
+
+    printf("\n" BLUE "STUDENT INFORMATION:\n");
+    printf("--------------------------------------------------------------------------------\n");
+    printf(" Name           : %s\n", student->fullName);
+    printf(" Email          : %s\n", student->email);
+    printf(" Phone          : %s\n", student->phone);
+    printf("--------------------------------------------------------------------------------\n" RESET);
+
+    printf("\n" MAGENTA "ACADEMIC PERFORMANCE:\n");
+    printf("--------------------------------------------------------------------------------\n");
+    if (validSubjects > 0)
+    {
+        printf(" Total Marks    : %.0f out of %.0f\n", totalMarks, validSubjects * 100);
+        printf(" Percentage     : %.1f%%\n", percentage);
+
+        // Grade calculation
+        char overallGrade = 'F';
+        if (percentage >= 90)
+            overallGrade = 'A';
+        else if (percentage >= 80)
+            overallGrade = 'B';
+        else if (percentage >= 70)
+            overallGrade = 'C';
+        else if (percentage >= 60)
+            overallGrade = 'D';
+
+        printf(" Overall Grade  : %c\n", overallGrade);
+    }
+    else
+    {
+        printf(" Total Marks    : No marks available\n");
+        printf(" Percentage     : N/A\n");
+        printf(" Overall Grade  : Not Assigned\n");
+    }
+    printf("--------------------------------------------------------------------------------\n" RESET);
+
+    printf("\n" YELLOW "ATTENDANCE RECORD:\n");
+    printf("--------------------------------------------------------------------------------\n");
+    printf(" Present Days   : %d out of %d\n", totalPresent, totalDays);
+    printf(" Attendance     : %.1f%%\n", attendancePercentage);
+
+    char *attStatus = "Critical";
+    if (attendancePercentage >= 85)
+        attStatus = "Excellent";
+    else if (attendancePercentage >= 75)
+        attStatus = "Good";
+    else if (attendancePercentage >= 65)
+        attStatus = "Warning";
+
+    printf(" Status         : %s\n", attStatus);
+    printf("--------------------------------------------------------------------------------\n" RESET);
+
+    printf("\n" CYAN "FEE DETAILS:\n");
+    printf("--------------------------------------------------------------------------------\n");
+    if (totalFeeAmount > 0)
+    {
+        printf(" Total Amount   : Rs. %.0f\n", totalFeeAmount);
+        printf(" Amount Paid    : Rs. %.0f\n", totalFeePaid);
+        printf(" Balance Due    : Rs. %.0f\n", feeDue);
+        printf(" Payment Status : %s\n", (feeDue <= 0) ? "Fully Paid" : "Outstanding");
+    }
+    else
+    {
+        printf(" No fee records available\n");
+    }
+    printf("--------------------------------------------------------------------------------\n" RESET);
+
+    // Result section
+    printf("\n");
+    printf("================================================================================\n");
+    if (strcmp(result, "PASS") == 0)
+    {
+        printf(GREEN "                                RESULT: PASS                                   \n" RESET);
+        printf("================================================================================\n");
+        printf(" Congratulations! You have successfully met all academic requirements.\n");
+    }
+    else
+    {
+        printf(RED "                                RESULT: FAIL                                   \n" RESET);
+        printf("================================================================================\n");
+        printf(" Academic requirements not satisfied. Please consult your advisor.\n");
+    }
+    printf("================================================================================\n");
+
+    // Remarks section
+    printf("\n" YELLOW "REMARKS:\n");
+    printf("--------------------------------------------------------------------------------\n");
+    if (validSubjects == 0)
+    {
+        printf(" * No academic records found. Please contact your instructor.\n");
+    }
+    else if (percentage >= 85)
+    {
+        printf(" * Excellent academic performance. Keep up the outstanding work!\n");
+    }
+    else if (percentage >= 70)
+    {
+        printf(" * Good performance. Continue working towards excellence.\n");
+    }
+    else if (percentage >= 40)
+    {
+        printf(" * Satisfactory performance with room for improvement.\n");
+    }
+    else
+    {
+        printf(" * Requires significant academic improvement.\n");
+    }
+
+    if (attendancePercentage < 75)
+    {
+        printf(" * Warning: Attendance below minimum requirement (75%%).\n");
+    }
+
+    if (feeDue > 0)
+    {
+        printf(" * Notice: Outstanding fee payment required.\n");
+    }
+    printf("--------------------------------------------------------------------------------\n" RESET);
+
+    printf("\n" BLUE "================================================================================\n");
+    printf(" This report is computer generated and does not require signature.\n");
+    printf(" Generated by: Student Management System | Team: Sapphire\n");
+    printf(" Report Date: %02d/%02d/%d\n",
+           tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
+    printf("================================================================================\n" RESET);
+
     pressKeyToContinue();
 }
