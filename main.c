@@ -55,6 +55,12 @@ void showStudentMenu(const User *user);
 void showTeacherMenu(const User *user);
 void showAdminMenu(const User *user);
 
+void generateUserReport(const User *user);
+void generateStudentReport(const User *user);
+void generateTeacherReport(const User *user);
+void generateAdminReport(const User *user);
+
+
 // Student's functions prototype
 void listAllUsers();
 void viewMyMarks(const char *studentEmail);
@@ -528,10 +534,10 @@ void showTeacherMenu(const User *user)
             addStudentMarks(user->email);
             break;
         case 3:
-            markStudentAttendance(user->email);
+            markStudentAttendance(user->email); 
             break;
         case 4:
-            printf(YELLOW "\n[Report Generation] - Coming Soon!\n" RESET);
+            generateUserReport(user);
             break;
         case 5:
             printf(GREEN "\nLogging out...\n" RESET);
@@ -562,7 +568,7 @@ void showAdminMenu(const User *user)
         printf("| 5. List of Student Only             |\n");
         printf("| 6. List of Teacher Only             |\n");
         printf("| 7. List of Admin Only               |\n");
-        printf("| 8. System Reports                   |\n");
+        printf("| 8. Generate Reports                 |\n");
         printf("| 9. Logout                           |\n");
         printf("|-------------------------------------|\n" RESET);
         printf(CYAN "Enter your choice: " RESET);
@@ -667,8 +673,7 @@ void showAdminMenu(const User *user)
             listAdminOnly();
             break;
         case 8:
-            printf(YELLOW "\n[System Report] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
+            generateUserReport(user);
             break;
         case 9:
             printf(GREEN "\nLogging out...\n" RESET);
@@ -805,7 +810,8 @@ void listStudentOnly()
                    tempUser.role, tempUser.password) == 5)
         {
 
-            if (strcmp(tempUser.role, "Student") == 0){
+            if (strcmp(tempUser.role, "Student") == 0)
+            {
                 userCount++;
                 printf("%-4d %-20s %-25s %-15s ", userCount, tempUser.fullName, tempUser.email, tempUser.phone);
             }
@@ -845,7 +851,8 @@ void listTeacherOnly()
                    tempUser.role, tempUser.password) == 5)
         {
 
-            if (strcmp(tempUser.role, "Teacher") == 0){
+            if (strcmp(tempUser.role, "Teacher") == 0)
+            {
                 userCount++;
                 printf("%-4d %-20s %-25s %-15s ", userCount, tempUser.fullName, tempUser.email, tempUser.phone);
             }
@@ -885,7 +892,8 @@ void listAdminOnly()
                    tempUser.role, tempUser.password) == 5)
         {
 
-            if (strcmp(tempUser.role, "Admin") == 0){
+            if (strcmp(tempUser.role, "Admin") == 0)
+            {
                 userCount++;
                 printf("%-4d %-20s %-25s %-15s ", userCount, tempUser.fullName, tempUser.email, tempUser.phone);
             }
@@ -1870,4 +1878,155 @@ void markStudentAttendance(const char *teacherEmail)
 
     printf(GREEN "Attendance record updated successfully!\n" RESET);
     pressKeyToContinue();
+}
+
+void generateUserReport(const User *user)
+{
+    clearScreen();
+    printf(CYAN "=== Generate User Report ===\n" RESET);
+
+    char targetEmail[MAX_EMAIL_LENGTH];
+    printf(CYAN "Enter user email to generate report: " RESET);
+    takeInput(targetEmail, sizeof(targetEmail));
+
+    if (strlen(targetEmail) == 0)
+    {
+        printf(RED "Error: Email cannot be empty.\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    // Check if the target user exists
+    if (!checkEmailExists(targetEmail))
+    {
+        printf(RED "Error: User with email '%s' not found.\n" RESET, targetEmail);
+        pressKeyToContinue();
+        return;
+    }
+
+    // Find the target user's role
+    FILE *file = fopen(USER_FILE, "r");
+    if (file == NULL)
+    {
+        printf(RED "Error: Unable to open user file.\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    char line[MAX_LINE_LENGTH];
+    User targetUser;
+    int found = 0;
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        if (sscanf(line, "%49[^,],%49[^,],%19[^,],%19[^,],%49[^\n]",
+                   targetUser.fullName, targetUser.email, targetUser.phone,
+                   targetUser.role, targetUser.password) == 5)
+        {
+            if (strcmp(targetUser.email, targetEmail) == 0)
+            {
+                found = 1;
+                break;
+            }
+        }
+    }
+    fclose(file);
+
+    if (!found)
+    {
+        printf(RED "Error: Unable to retrieve user information.\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    // Role-based access control
+    if (strcmp(user->role, "Teacher") == 0)
+    {
+        // Teachers can only generate reports for students
+        if (strcmp(targetUser.role, "Student") != 0)
+        {
+            printf(RED "Error: Teachers can only generate reports for students.\n" RESET);
+            printf(RED "Cannot generate report for %s role.\n" RESET, targetUser.role);
+            pressKeyToContinue();
+            return;
+        }
+
+        // Generate student report for teacher
+        clearScreen();
+        printf(BLUE "=====================================\n");
+        printf("       STUDENT REPORT (Teacher View) \n");
+        printf("=====================================\n" RESET);
+        generateStudentReport(&targetUser);
+    }
+    else if (strcmp(user->role, "Admin") == 0)
+    {
+        // Admins can generate reports for anyone
+        clearScreen();
+        // Color header based on role
+        if (strcmp(targetUser.role, "Student") == 0)
+        {
+            printf(BLUE "=====================================\n");
+            printf("       STUDENT REPORT (Admin View)   \n");
+            printf("=====================================\n" RESET);
+            generateStudentReport(&targetUser);
+        }
+        else if (strcmp(targetUser.role, "Teacher") == 0)
+        {
+            printf(MAGENTA "=====================================\n");
+            printf("       TEACHER REPORT (Admin View)   \n");
+            printf("=====================================\n" RESET);
+            generateTeacherReport(&targetUser);
+        }
+        else if (strcmp(targetUser.role, "Admin") == 0)
+        {
+            printf(RED "=====================================\n");
+            printf("        ADMIN REPORT (Admin View)    \n");
+            printf("=====================================\n" RESET);
+            generateAdminReport(&targetUser);
+        }
+        else
+        {
+            printf(RED "Error: Unknown user role '%s'\n" RESET, targetUser.role);
+        }
+    }
+    else
+    {
+        printf(RED "Error: Only Teachers and Admins can generate user reports.\n" RESET);
+    }
+
+    printf(CYAN "\n=====================================\n");
+    printf("         END OF REPORT               \n");
+    printf("=====================================\n" RESET);
+
+    pressKeyToContinue();
+}
+
+// Updated generateStudentReport function
+void generateStudentReport(const User *user)
+{
+    displayUserInfo(user);
+    printf(GREEN "\n=== ACADEMIC PERFORMANCE ===\n" RESET);
+    viewMyMarks(user->email);
+    viewMyAttendance(user->email);
+    viewMyFeeStatus(user->email);
+}
+
+// Updated generateTeacherReport function  
+void generateTeacherReport(const User *user)
+{
+    displayUserInfo(user);
+    printf(MAGENTA "\n--- TEACHING SUMMARY ---\n" RESET);
+    printf("Current Semester: Active\n");
+    printf("Teaching Load:    Full Time\n");
+    printf("Office Hours:     Mon-Fri 10:00-12:00\n");
+}
+
+// Updated generateAdminReport function
+void generateAdminReport(const User *user)
+{
+    displayUserInfo(user);
+    printf(RED "\n--- ADMIN SUMMARY ---\n" RESET);
+    printf("Admin Level: Full Access\n");
+    printf("Department: System Administration\n");
+    printf("Last Login: Active Session\n");
 }
