@@ -1,4 +1,4 @@
-# Student Management System `v2.1.1` (updated)
+# Student Management System `v2.2.0` (updated)
 
 A simple, efficient command-line student management application built in C.
 
@@ -191,7 +191,7 @@ gcc -o SMS.exe main.o helper.o mainMenu.o
 
 ## Version History
 
-### v1.4.3 (Current)
+### v2.2.0 (Current)
 - Initial release
 - Core registration and login functionality
 - Input validation system
@@ -237,5 +237,5 @@ Planned features for upcoming versions:
 ---
 
 **Last Updated:** July 27, 2025  
-**Version:** 1.4.3  
+**Version:** 2.2.0  
 **Compatibility:** Windows 7+
