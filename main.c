@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <windows.h>
 #include <conio.h>
+#include <time.h>
+#include <stdlib.h>
 
 // Custom Libraries
 #include "mainMenu.h"
@@ -54,12 +56,18 @@ void showRoleBasedMenu(const User *user);
 void showStudentMenu(const User *user);
 void showTeacherMenu(const User *user);
 void showAdminMenu(const User *user);
+void marksheetMenu(const User *currentUser);
+void generateMarksheet(const User *currentUser);
+int getStudentMarksForMarksheet(const char *email, int marks[5]);
+int getStudentAttendanceForMarksheet(const char *email, int present[5], int total[5]);
+int getStudentFeesForMarksheet(const char *email, float amounts[5], float paid[5]);
+User* findStudentByEmail(const char *email);
+
 
 void generateUserReport(const User *user);
 void generateStudentReport(const User *user);
 void generateTeacherReport(const User *user);
 void generateAdminReport(const User *user);
-
 
 // Student's functions prototype
 void listAllUsers();
@@ -456,7 +464,8 @@ void showStudentMenu(const User *user)
         printf("| 1. View My Marks                    |\n");
         printf("| 2. View My Fee Status               |\n");
         printf("| 3. View My Attendance               |\n");
-        printf("| 4. Logout                           |\n");
+        printf("| 4. Generate Marksheet               |\n");
+        printf("| 5. Logout                           |\n");
         printf("|-------------------------------------|\n" RESET);
         printf(CYAN "Enter your choice: " RESET);
 
@@ -484,6 +493,9 @@ void showStudentMenu(const User *user)
             viewMyAttendance(user->email);
             break;
         case 4:
+            marksheetMenu(user);
+            break;
+        case 5:
             printf(GREEN "\nLogging out...\n" RESET);
             return;
         default:
@@ -509,7 +521,8 @@ void showTeacherMenu(const User *user)
         printf("| 2. Manage Marks                     |\n");
         printf("| 3. Manage Attendance                |\n");
         printf("| 4. Generate Reports                 |\n");
-        printf("| 5. Logout                           |\n");
+        printf("| 5. Generate Marksheet               |\n");
+        printf("| 6. Logout                           |\n");
         printf("|-------------------------------------|\n" RESET);
         printf(CYAN "Enter your choice: " RESET);
 
@@ -534,12 +547,15 @@ void showTeacherMenu(const User *user)
             addStudentMarks(user->email);
             break;
         case 3:
-            markStudentAttendance(user->email); 
+            markStudentAttendance(user->email);
             break;
         case 4:
             generateUserReport(user);
             break;
         case 5:
+            marksheetMenu(user);
+            break;
+        case 6:
             printf(GREEN "\nLogging out...\n" RESET);
             return;
         default:
@@ -2011,7 +2027,7 @@ void generateStudentReport(const User *user)
     viewMyFeeStatus(user->email);
 }
 
-// Updated generateTeacherReport function  
+// Updated generateTeacherReport function
 void generateTeacherReport(const User *user)
 {
     displayUserInfo(user);
@@ -2030,3 +2046,433 @@ void generateAdminReport(const User *user)
     printf("Department: System Administration\n");
     printf("Last Login: Active Session\n");
 }
+
+// Menu function to be called from your existing menus
+void marksheetMenu(const User *currentUser) {
+    int choice;
+    
+    do {
+        clearScreen();
+        printf(CYAN "+==========================================+\n");
+        printf("|         MARKSHEET GENERATOR            |\n");
+        printf("+==========================================+\n");
+        printf("|  1. Generate Marksheet                 |\n");
+        printf("|  2. Back to Main Menu                  |\n");
+        printf("+==========================================+\n" RESET);
+        printf(CYAN "Enter your choice: " RESET);
+        
+        if (scanf("%d", &choice) != 1) {
+            while (getchar() != '\n');
+            choice = -1;
+        } else {
+            while (getchar() != '\n');
+        }
+        
+        switch(choice) {
+            case 1:
+                generateMarksheet(currentUser);
+                break;
+            case 2:
+                return;
+            default:
+                printf(RED "Invalid choice! Please try again.\n" RESET);
+                Sleep(1500);
+        }
+    } while (choice != 2);
+}
+// Function to get student marks using your existing file format
+int getStudentMarksForMarksheet(const char *email, int marks[5]) {
+    FILE *file = fopen(MARKS_FILE, "r");
+    if (file == NULL) {
+        for (int i = 0; i < 5; i++) marks[i] = -1;
+        return 0;
+    }
+
+    char line[200];
+    char fileEmail[50];
+    
+    while (fgets(line, sizeof(line), file) != NULL) {
+        if (sscanf(line, "%49[^,],%d,%d,%d,%d,%d",
+                   fileEmail, &marks[0], &marks[1], &marks[2], &marks[3], &marks[4]) >= 1) {
+            if (strcmp(fileEmail, email) == 0) {
+                fclose(file);
+                return 1;
+            }
+        }
+    }
+    fclose(file);
+    
+    for (int i = 0; i < 5; i++) marks[i] = -1;
+    return 0;
+}
+
+// Function to get student attendance using your existing file format
+int getStudentAttendanceForMarksheet(const char *email, int present[5], int total[5]) {
+    FILE *file = fopen(ATTENDANCE_FILE, "r");
+    if (file == NULL) {
+        for (int i = 0; i < 5; i++) {
+            present[i] = 0;
+            total[i] = 120;
+        }
+        return 0;
+    }
+
+    char line[MAX_LINE_LENGTH];
+    char fileEmail[MAX_EMAIL_LENGTH];
+    
+    while (fgets(line, sizeof(line), file) != NULL) {
+        if (sscanf(line, "%49[^,],%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+                   fileEmail, &present[0], &total[0], &present[1], &total[1],
+                   &present[2], &total[2], &present[3], &total[3],
+                   &present[4], &total[4]) >= 1) {
+            if (strcmp(fileEmail, email) == 0) {
+                fclose(file);
+                return 1;
+            }
+        }
+    }
+    fclose(file);
+    
+    for (int i = 0; i < 5; i++) {
+        present[i] = 0;
+        total[i] = 120;
+    }
+    return 0;
+}
+
+// Function to get student fees using your existing file format
+int getStudentFeesForMarksheet(const char *email, float amounts[5], float paid[5]) {
+    FILE *file = fopen(FEES_FILE, "r");
+    if (file == NULL) {
+        for (int i = 0; i < 5; i++) {
+            amounts[i] = 0;
+            paid[i] = 0;
+        }
+        return 0;
+    }
+
+    char line[300];
+    char fileEmail[50];
+    
+    while (fgets(line, sizeof(line), file) != NULL) {
+        if (sscanf(line, "%49[^,],%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+                   fileEmail, &amounts[0], &paid[0], &amounts[1], &paid[1],
+                   &amounts[2], &paid[2], &amounts[3], &paid[3],
+                   &amounts[4], &paid[4]) >= 1) {
+            if (strcmp(fileEmail, email) == 0) {
+                fclose(file);
+                return 1;
+            }
+        }
+    }
+    fclose(file);
+    
+    for (int i = 0; i < 5; i++) {
+        amounts[i] = 0;
+        paid[i] = 0;
+    }
+    return 0;
+}
+
+// Function to find user by email using your existing file format
+User* findStudentByEmail(const char *email) {
+    static User foundUser;
+    FILE *file = fopen(USER_FILE, "r");
+    if (file == NULL) {
+        return NULL;
+    }
+
+    char line[MAX_LINE_LENGTH];
+    while (fgets(line, sizeof(line), file) != NULL) {
+        if (sscanf(line, "%49[^,],%49[^,],%19[^,],%19[^,],%49[^\n]",
+                   foundUser.fullName, foundUser.email, foundUser.phone,
+                   foundUser.role, foundUser.password) == 5) {
+            if (strcmp(foundUser.email, email) == 0) {
+                fclose(file);
+                return &foundUser;
+            }
+        }
+    }
+    fclose(file);
+    return NULL;
+}
+
+// Main Marksheet Generator Function
+void generateMarksheet(const User *currentUser) {
+    char targetEmail[MAX_EMAIL_LENGTH];
+    
+    // Determine whose marksheet to generate based on current user's role
+    if (strcmp(currentUser->role, "Student") == 0) {
+        // If student, generate their own marksheet
+        strcpy(targetEmail, currentUser->email);
+    } else if (strcmp(currentUser->role, "Teacher") == 0) {
+        // If teacher, ask for student email
+        clearScreen();
+        printf(CYAN "=== MARKSHEET GENERATOR ===\n" RESET);
+        printf(CYAN "Enter student's email: " RESET);
+        takeInput(targetEmail, MAX_EMAIL_LENGTH);
+        
+        if (strlen(targetEmail) == 0) {
+            printf(RED "Error: Email cannot be empty.\n" RESET);
+            pressKeyToContinue();
+            return;
+        }
+    } else {
+        printf(RED "Access denied! Only students and teachers can generate marksheets.\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+    
+    // Check if student exists using your existing function
+    if (!checkEmailExists(targetEmail)) {
+        printf(RED "Student not found!\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+    
+    // Find student data using our helper function
+    User* student = findStudentByEmail(targetEmail);
+    if (student == NULL) {
+        printf(RED "Error retrieving student data!\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+    
+    // Verify it's a student account
+    if (strcmp(student->role, "Student") != 0) {
+        printf(RED "The provided email is not a student account!\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+    
+    // Get data using your existing file formats
+    int marks[5];
+    int present[5], total[5];
+    float amounts[5], paid[5];
+    
+    getStudentMarksForMarksheet(targetEmail, marks);
+    getStudentAttendanceForMarksheet(targetEmail, present, total);
+    getStudentFeesForMarksheet(targetEmail, amounts, paid);
+    
+    // Your subject names (matching your system)
+    char subjects[][20] = {"English", "Math", "Science", "History", "Computer"};
+    char feeTypes[][20] = {"Tuition", "Library", "Lab", "Sports", "Exam"};
+    
+    // Calculate total marks and percentage
+    float totalMarks = 0, totalMaxMarks = 0;
+    int validMarks = 0;
+    
+    for (int i = 0; i < 5; i++) {
+        if (marks[i] != -1) {
+            totalMarks += marks[i];
+            totalMaxMarks += 100;
+            validMarks++;
+        }
+    }
+    
+    float percentage = (validMarks > 0) ? (totalMarks / (validMarks * 100)) * 100 : 0;
+    
+    // Calculate overall attendance
+    int totalPresent = 0, totalDays = 0;
+    for (int i = 0; i < 5; i++) {
+        totalPresent += present[i];
+        totalDays += total[i];
+    }
+    float attendancePercentage = (totalDays > 0) ? ((float)totalPresent / totalDays) * 100 : 0;
+    
+    // Determine pass/fail status
+    char* status = "FAIL";
+    if (percentage >= 40 && attendancePercentage >= 75) {
+        status = "PASS";
+    }
+    
+    // Get current date
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    
+    // Clear screen for better presentation
+    clearScreen();
+    
+    // Generate the marksheet with ASCII characters
+    printf("\n");
+    printf(CYAN "+==============================================================================+\n");
+    printf("|                          ** STUDENT MARKSHEET **                            |\n");
+    printf("+==============================================================================+\n");
+    printf("| >> Generated on: %02d/%02d/%d                << Academic Session >>       |\n", 
+           tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
+    printf("+==============================================================================+\n" RESET);
+    
+    printf("\n" BLUE "+----------------------------- STUDENT INFORMATION -------------------------+\n");
+    printf("| Name          : %-55s |\n", student->fullName);
+    printf("| Email         : %-55s |\n", student->email);
+    printf("| Phone         : %-55s |\n", student->phone);
+    printf("| Role          : %-55s |\n", student->role);
+    printf("+-------------------------------------------------------------------------+\n" RESET);
+    
+    printf("\n" MAGENTA "+----------------------------- ACADEMIC PERFORMANCE -------------------------+\n");
+    printf("|                                                                         |\n");
+    printf("| >> SUBJECT-WISE MARKS:                                                 |\n");
+    printf("| +---------------------------------------------------------------------+ |\n");
+    printf("| | Subject           | Marks Obtained | Maximum | Grade | Percentage | |\n");
+    printf("| +---------------------------------------------------------------------+ |\n" RESET);
+    
+    for (int i = 0; i < 5; i++) {
+        char grade = '-';
+        float subjectPercentage = 0;
+        
+        if (marks[i] != -1) {
+            subjectPercentage = marks[i];
+            if (marks[i] >= 90) grade = 'A';
+            else if (marks[i] >= 80) grade = 'B';
+            else if (marks[i] >= 70) grade = 'C';
+            else if (marks[i] >= 60) grade = 'D';
+            else grade = 'F';
+            
+            printf(MAGENTA "| | %-17s |      %3d        |   100   |   %c   |   %6.1f%% | |\n" RESET, 
+                   subjects[i], marks[i], grade, subjectPercentage);
+        } else {
+            printf(MAGENTA "| | %-17s |      N/A        |   100   |   -   |     N/A  | |\n" RESET, 
+                   subjects[i]);
+        }
+    }
+    
+    printf(MAGENTA "| +---------------------------------------------------------------------+ |\n");
+    printf("|                                                                         |\n");
+    printf("| >> OVERALL PERFORMANCE:                                                |\n");
+    if (validMarks > 0) {
+        printf("| Total Marks Obtained : %.0f / %.0f                                   |\n", totalMarks, totalMaxMarks);
+        printf("| Overall Percentage   : %.2f%%                                        |\n", percentage);
+    } else {
+        printf("| Total Marks Obtained : No marks available                          |\n");
+        printf("| Overall Percentage   : N/A                                         |\n");
+    }
+    printf("|                                                                         |\n");
+    printf("+-------------------------------------------------------------------------+\n" RESET);
+    
+    printf("\n" YELLOW "+----------------------------- ATTENDANCE RECORD ----------------------------+\n");
+    printf("|                                                                         |\n");
+    printf("| >> SUBJECT-WISE ATTENDANCE:                                            |\n");
+    printf("| +---------------------------------------------------------------------+ |\n");
+    printf("| | Subject           | Present/Total  | Percentage | Status           | |\n");
+    printf("| +---------------------------------------------------------------------+ |\n" RESET);
+    
+    for (int i = 0; i < 5; i++) {
+        float subjectPercentage = (total[i] > 0) ? ((float)present[i] / total[i]) * 100 : 0;
+        char* attStatus = (subjectPercentage >= 75) ? "Good" : (subjectPercentage >= 65) ? "Warning" : "Critical";
+        
+        printf(YELLOW "| | %-17s |   %3d/%-3d      |   %6.1f%% | %-12s | |\n" RESET,
+               subjects[i], present[i], total[i], subjectPercentage, attStatus);
+    }
+    
+    printf(YELLOW "| +---------------------------------------------------------------------+ |\n");
+    printf("|                                                                         |\n");
+    printf("| >> OVERALL ATTENDANCE:                                                 |\n");
+    printf("| Total Classes        : %d / %d                                        |\n", totalPresent, totalDays);
+    printf("| Attendance Percentage: %.2f%%                                          |\n", attendancePercentage);
+    printf("|                                                                         |\n");
+    printf("+-------------------------------------------------------------------------+\n" RESET);
+    
+    // Fee Status
+    printf("\n" CYAN "+------------------------------- FEE STATUS -------------------------------+\n");
+    printf("|                                                                         |\n");
+    float totalDue = 0;
+    int hasFees = 0;
+    
+    for (int i = 0; i < 5; i++) {
+        if (amounts[i] > 0) {
+            hasFees = 1;
+            float due = amounts[i] - paid[i];
+            if (due > 0) totalDue += due;
+        }
+    }
+    
+    if (hasFees) {
+        printf("| >> FEE BREAKDOWN:                                                   |\n");
+        for (int i = 0; i < 5; i++) {
+            if (amounts[i] > 0) {
+                float due = amounts[i] - paid[i];
+                char* feeStatus = (due <= 0) ? "Paid" : "Pending";
+                printf("| %-12s: Rs.%7.0f (Paid: %7.0f) - %-8s               |\n",
+                       feeTypes[i], amounts[i], paid[i], feeStatus);
+            }
+        }
+        if (totalDue > 0) {
+            printf("|                                                                         |\n");
+            printf("| >> TOTAL DUE: Rs. %.0f                                               |\n", totalDue);
+        } else {
+            printf("|                                                                         |\n");
+            printf("| >> ALL FEES PAID                                                   |\n");
+        }
+    } else {
+        printf("| No fee records found                                                |\n");
+    }
+    printf("|                                                                         |\n");
+    printf("+-------------------------------------------------------------------------+\n" RESET);
+    
+    // Result Status
+    printf("\n+------------------------------- RESULT STATUS ------------------------------+\n");
+    printf("|                                                                         |\n");
+    if (strcmp(status, "PASS") == 0) {
+        printf(GREEN "| >> CONGRATULATIONS! <<                                              |\n");
+        printf("|                                                                         |\n");
+        printf("| STATUS: %s                                                           |\n", status);
+        printf("|                                                                         |\n");
+        printf("| [*] Academic Performance: SATISFACTORY                              |\n");
+        printf("| [*] Attendance Requirement: MET                                     |\n" RESET);
+    } else {
+        printf(RED "| >> ATTENTION REQUIRED <<                                            |\n");
+        printf("|                                                                         |\n");
+        printf("| STATUS: %s                                                            |\n", status);
+        printf("|                                                                         |\n");
+        if (percentage < 40) {
+            printf("| [X] Academic Performance: BELOW MINIMUM                             |\n");
+        } else {
+            printf("| [*] Academic Performance: SATISFACTORY                              |\n");
+        }
+        if (attendancePercentage < 75) {
+            printf("| [X] Attendance Requirement: NOT MET                                 |\n");
+        } else {
+            printf("| [*] Attendance Requirement: MET                                     |\n");
+        }
+        printf("|                                                                         |\n");
+        printf("| >> Action Required: Improvement Needed                              |\n" RESET);
+    }
+    printf("|                                                                         |\n");
+    printf("+-------------------------------------------------------------------------+\n");
+    
+    // Remarks
+    printf("\n" YELLOW "+--------------------------------- REMARKS ---------------------------------+\n");
+    if (validMarks > 0) {
+        if (percentage >= 90) {
+            printf("| ** OUTSTANDING PERFORMANCE! Keep up the excellent work!            |\n");
+        } else if (percentage >= 80) {
+            printf("| ** VERY GOOD PERFORMANCE! You're doing great!                     |\n");
+        } else if (percentage >= 70) {
+            printf("| ** GOOD PERFORMANCE! There's room for improvement.                |\n");
+        } else if (percentage >= 60) {
+            printf("| >> AVERAGE PERFORMANCE! Focus on weak areas.                      |\n");
+        } else if (percentage >= 40) {
+            printf("| !! BELOW AVERAGE! Serious improvement needed.                     |\n");
+        } else {
+            printf("| !! POOR PERFORMANCE! Immediate attention required.                |\n");
+        }
+    } else {
+        printf("| >> NO MARKS AVAILABLE! Contact your teacher for marks entry.       |\n");
+    }
+    
+    if (attendancePercentage < 85 && totalDays > 0) {
+        printf("| >> ATTENDANCE CONCERN: Regular attendance is crucial for success.  |\n");
+    }
+    printf("+-----------------------------------------------------------------------+\n" RESET);
+    
+    printf("\n" BLUE "+==============================================================================+\n");
+    printf("| This marksheet is computer generated and doesn't require signature.     |\n");
+    printf("| For any queries, contact the academic office.                           |\n");
+    printf("|                                                                          |\n");
+    printf("| Generated by: Student Management System | Team Sapphire                 |\n");
+    printf("+==============================================================================+\n" RESET);
+    
+    printf("\n>> Press any key to continue...");
+    pressKeyToContinue();
+}
+
