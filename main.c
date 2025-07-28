@@ -1,6 +1,7 @@
 // Standard Libraries
 #include <stdio.h>
 #include <windows.h>
+#include <conio.h>
 
 // Custom Libraries
 #include "mainMenu.h"
@@ -26,6 +27,7 @@
 #define USER_FILE "users.txt"
 #define MARKS_FILE "marks.txt"
 #define FEES_FILE "fees.txt"
+#define ATTENDANCE_FILE "attendance.txt"
 
 typedef struct
 {
@@ -56,6 +58,8 @@ void viewMyMarks(const char *studentEmail);
 void viewMyFeeStatus(const char *studentEmail);
 void addStudentMarks(const char *teacherEmail);
 void manageFees(const char *adminEmail);
+int deleteUserData(const char *userEmail);
+void showUserDeletionMenu();
 
 int main()
 {
@@ -349,10 +353,32 @@ void displayUserInfo(const User *user)
 void createDefaultAdmin()
 {
     FILE *file = fopen(USER_FILE, "r");
-    if (file == NULL)
+    int adminExists = 0;
+
+    if (file != NULL)
     {
-        // File doesn't exist, create default admin
-        file = fopen(USER_FILE, "w");
+        char line[MAX_LINE_LENGTH];
+        User tempUser;
+
+        while (fgets(line, sizeof(line), file) != NULL)
+        {
+            if (sscanf(line, "%49[^,],%49[^,],%19[^,],%19[^,],%49[^\n]",
+                       tempUser.fullName, tempUser.email, tempUser.phone,
+                       tempUser.role, tempUser.password) == 5)
+            {
+                if (strcmp(tempUser.email, "admin@system.com") == 0)
+                {
+                    adminExists = 1;
+                    break;
+                }
+            }
+        }
+        fclose(file);
+    }
+
+    if (!adminExists)
+    {
+        file = fopen(USER_FILE, "a");
         if (file != NULL)
         {
             fprintf(file, "System Admin,admin@system.com,1234567890,Admin,admin123\n");
@@ -362,44 +388,8 @@ void createDefaultAdmin()
             printf(CYAN "Password: admin123\n" RESET);
         }
     }
-    else
-    {
-        // Check if admin exists
-        char line[MAX_LINE_LENGTH];
-        User tempUser;
-        int adminExists = 0;
-
-        while (fgets(line, sizeof(line), file) != NULL)
-        {
-            if (sscanf(line, "%49[^,],%49[^,],%19[^,],%19[^,],%49[^\n]",
-                       tempUser.fullName, tempUser.email, tempUser.phone,
-                       tempUser.role, tempUser.password) == 5)
-            {
-
-                if (strcmp(tempUser.role, "Admin") == 0)
-                {
-                    adminExists = 1;
-                    break;
-                }
-            }
-        }
-        fclose(file);
-
-        if (!adminExists)
-        {
-            // Add default admin
-            file = fopen(USER_FILE, "a");
-            if (file != NULL)
-            {
-                fprintf(file, "System Admin,admin@system.com,1234567890,Admin,admin123\n");
-                fclose(file);
-                printf(GREEN "Default admin account created!\n");
-                printf(CYAN "Email: admin@system.com\n");
-                printf(CYAN "Password: admin123\n" RESET);
-            }
-        }
-    }
 }
+
 void showRoleBasedMenu(const User *user)
 {
 
@@ -435,9 +425,9 @@ void showStudentMenu(const User *user)
         printf("| 1. View My Marks                    |\n");
         printf("| 2. View My Assignments              |\n");
         printf("| 3. View My Fee Status               |\n");
-        printf("| 4. Update Profile                   |\n");
+        printf("| 4. Update Profile                   |\n"); // module remove
         printf("| 5. View My Attendance               |\n");
-        printf("| 6. Submit Assignment                |\n");
+        printf("| 6. Submit Assignment                |\n"); // module remove
         printf("| 7. Logout                           |\n");
         printf("|-------------------------------------|\n" RESET);
         printf(CYAN "Enter your choice: " RESET);
@@ -459,7 +449,6 @@ void showStudentMenu(const User *user)
         case 1: // View My Marks
             viewMyMarks(user->email);
             break;
-            // printf(YELLOW "\n[Student Marks Module] - Coming Soon!\n" RESET);
         case 2:
             printf(YELLOW "\n[Assignment Module] - Coming Soon!\n" RESET);
             pressKeyToContinue();
@@ -467,7 +456,6 @@ void showStudentMenu(const User *user)
         case 3: // View My Fee Status
             viewMyFeeStatus(user->email);
             pressKeyToContinue();
-            // printf(YELLOW "\n[Fee Module] - Coming Soon!\n" RESET);
             break;
         case 4:
             printf(YELLOW "\n[Profile Update] - Coming Soon!\n" RESET);
@@ -508,7 +496,7 @@ void showTeacherMenu(const User *user)
         printf("| 4. Mark Attendance                  |\n");
         printf("| 5. Grade Assignments                |\n");
         printf("| 6. Generate Reports                 |\n");
-        printf("| 7. Update Profile                   |\n");
+        printf("| 7. Update Profile                   |\n"); // module remove
         printf("| 8. Logout                           |\n");
         printf("|-------------------------------------|\n" RESET);
         printf(CYAN "Enter your choice: " RESET);
@@ -577,15 +565,15 @@ void showAdminMenu(const User *user)
         printf(RED "|-------------------------------------|\n");
         printf("|             ADMIN MENU              |\n");
         printf("|-------------------------------------|\n");
-        printf("| 1. User Management                  |\n");
+        printf("| 1. User Management                  |\n"); // module remove
         printf("| 2. Change User Roles                |\n");
         printf("| 3. View All Users                   |\n");
         printf("| 4. Manage Student Records           |\n");
         printf("| 5. Manage Teacher Records           |\n");
         printf("| 6. Fee Management                   |\n");
         printf("| 7. System Reports                   |\n");
-        printf("| 8. Database Backup                  |\n");
-        printf("| 9. Settings                         |\n");
+        printf("| 8. Database Backup                  |\n"); // module remove
+        printf("| 9. Settings                         |\n"); // module remove
         printf("| 10. Logout                          |\n");
         printf("|-------------------------------------|\n" RESET);
         printf(CYAN "Enter your choice: " RESET);
@@ -605,8 +593,7 @@ void showAdminMenu(const User *user)
         switch (choice)
         {
         case 1:
-            printf(YELLOW "\n[User Management] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
+            showUserDeletionMenu();
             break;
         case 2:
         {
@@ -616,8 +603,13 @@ void showAdminMenu(const User *user)
             char newRole[MAX_ROLE_LENGTH];
             int roleChoice;
 
-            printf(CYAN "Enter user email: " RESET);
-            takeInput(email, MAX_EMAIL_LENGTH);
+            do {
+                printf(CYAN "Enter user email: " RESET);
+                takeInput(email, MAX_EMAIL_LENGTH);
+                if (strlen(email) == 0) {
+                    printf(RED "Error: Email cannot be empty.\n" RESET);
+                }
+            } while (strlen(email) == 0);
 
             printf(CYAN "\nAvailable Roles:\n" RESET);
             printf("1. Student\n2. Teacher\n3. Admin\n");
@@ -1229,5 +1221,177 @@ void manageFees(const char *adminEmail)
     printf("Fee Type: %s\n", feeTypes[choice - 1]);
     printf("Amount: %.0f, Paid: %.0f\n", amount, paidAmount);
     printf("Status: %s\n" RESET, status);
+    pressKeyToContinue();
+}
+
+// Function to delete user and all associated data
+int deleteUserData(const char *userEmail)
+{
+    printf(CYAN "=== Delete User Data ===\n" RESET);
+    printf(YELLOW "WARNING: This will permanently delete user: %s\n" RESET, userEmail);
+    printf(RED "Press ANY KEY within 5 seconds to CANCEL, or wait to confirm deletion...\n" RESET);
+
+    // Simple 5-second countdown with cancel option
+    for (int i = 5; i > 0; i--)
+    {
+        printf(YELLOW "Deleting in %d seconds... (Press any key to cancel)\n" RESET, i);
+
+// Check if any key is pressed using kbhit() equivalent
+#ifdef _WIN32
+        if (_kbhit())
+        {
+            _getch(); // Clear the pressed key
+            printf(GREEN "Deletion cancelled by user.\n" RESET);
+            return 0;
+        }
+#endif
+
+        Sleep(1000); // Wait 1 second
+    }
+
+    printf(RED "Proceeding with deletion...\n" RESET);
+
+    // Delete from users.txt
+    FILE *userFile = fopen(USER_FILE, "r");
+    FILE *tempUserFile = fopen("temp_users.txt", "w");
+    int userDeleted = 0;
+
+    if (userFile != NULL && tempUserFile != NULL)
+    {
+        char line[MAX_LINE_LENGTH];
+        User tempUser;
+
+        while (fgets(line, sizeof(line), userFile) != NULL)
+        {
+            if (sscanf(line, "%49[^,],%49[^,],%19[^,],%19[^,],%49[^\n]",
+                       tempUser.fullName, tempUser.email, tempUser.phone,
+                       tempUser.role, tempUser.password) == 5)
+            {
+                if (strcmp(tempUser.email, userEmail) != 0)
+                {
+                    fprintf(tempUserFile, "%s", line);
+                }
+                else
+                {
+                    userDeleted = 1;
+                }
+            }
+        }
+        fclose(userFile);
+        fclose(tempUserFile);
+
+        if (userDeleted)
+        {
+            remove(USER_FILE);
+            rename("temp_users.txt", USER_FILE);
+        }
+        else
+        {
+            remove("temp_users.txt");
+        }
+    }
+
+    if (!userDeleted)
+    {
+        printf(RED "User not found!\n" RESET);
+        return 0;
+    }
+
+    // Delete from other files (marks, fees, attendance)
+    char *files[] = {MARKS_FILE, FEES_FILE, ATTENDANCE_FILE};
+    char *tempFiles[] = {"temp_marks.txt", "temp_fees.txt", "temp_attendance.txt"};
+
+    for (int fileIndex = 0; fileIndex < 3; fileIndex++)
+    {
+        FILE *file = fopen(files[fileIndex], "r");
+        FILE *tempFile = fopen(tempFiles[fileIndex], "w");
+
+        if (file != NULL && tempFile != NULL)
+        {
+            char line[MAX_LINE_LENGTH];
+            char email[MAX_EMAIL_LENGTH];
+
+            while (fgets(line, sizeof(line), file) != NULL)
+            {
+                if (sscanf(line, "%49[^,]", email) == 1)
+                {
+                    if (strcmp(email, userEmail) != 0)
+                    {
+                        fprintf(tempFile, "%s", line);
+                    }
+                }
+            }
+            fclose(file);
+            fclose(tempFile);
+
+            remove(files[fileIndex]);
+            rename(tempFiles[fileIndex], files[fileIndex]);
+        }
+        else
+        {
+            if (file)
+                fclose(file);
+            if (tempFile)
+                fclose(tempFile);
+        }
+    }
+
+    printf(GREEN "User '%s' and all associated data deleted successfully!\n" RESET, userEmail);
+    return 1;
+}
+
+// Function to show user deletion menu (call this from admin menu)
+void showUserDeletionMenu()
+{
+    clearScreen();
+    printf(RED "=== DELETE USER ===\n" RESET);
+
+    char userEmail[MAX_EMAIL_LENGTH];
+    printf(CYAN "Enter user email to delete: " RESET);
+    takeInput(userEmail, sizeof(userEmail));
+
+    // Confirm deletion (y/n, default is y)
+    char confirm[10];
+    printf(RED "Are you sure you want to delete user '%s'? (Y/N): " RESET, userEmail);
+    takeInput(confirm, sizeof(confirm));
+
+    // If user presses enter (empty input) or types 'y' or 'Y', proceed
+    if (strlen(confirm) == 0 || strcmp(confirm, "y") == 0 || strcmp(confirm, "Y") == 0)
+    {
+        // continue to deletion
+    }
+    else if (strcmp(confirm, "n") == 0 || strcmp(confirm, "N") == 0)
+    {
+        printf(GREEN "User deletion cancelled.\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+    else
+    {
+        printf(RED "Invalid input. User deletion cancelled.\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    if (strlen(userEmail) == 0)
+    {
+        printf(RED "Error: Email cannot be empty.\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    // Check if trying to delete system admin
+    if (strcmp(userEmail, "admin@system.com") == 0)
+    {
+        printf(RED "Error: Cannot delete system admin account!\n" RESET);
+        pressKeyToContinue();
+        return;
+    }
+
+    if (deleteUserData(userEmail))
+    {
+        printf(GREEN "User deletion completed!\n" RESET);
+    }
+
     pressKeyToContinue();
 }
