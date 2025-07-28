@@ -64,12 +64,15 @@ void viewMyAttendance(const char *studentEmail);
 // Teacher's functions prototype
 void addStudentMarks(const char *teacherEmail);
 void markStudentAttendance(const char *teacherEmail);
+void listStudentOnly();
 
 // Admin's functions prototype
 int changeUserRole(const char *email, const char *newRole);
 void manageFees(const char *adminEmail);
 int deleteUserData(const char *userEmail);
 void showUserDeletionMenu();
+void listTeacherOnly();
+void listAdminOnly();
 
 // THE MAIN FUNCTION - GOAT
 int main()
@@ -280,7 +283,7 @@ int isValidPhone(const char *phone)
 {
     // Simple phone validation - only digits and reasonable length
     int len = strlen(phone);
-    if (len < 7 || len > 11)
+    if (len == 10)
     {
         return 0;
     }
@@ -519,7 +522,7 @@ void showTeacherMenu(const User *user)
         switch (choice)
         {
         case 1:
-            printf(YELLOW "\n[Student List] - Coming Soon!\n" RESET);
+            listStudentOnly();
             break;
         case 2:
             addStudentMarks(user->email);
@@ -655,16 +658,13 @@ void showAdminMenu(const User *user)
             listAllUsers();
             break;
         case 5:
-            printf(YELLOW "\n[List of Student Only] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
+            listStudentOnly();
             break;
         case 6:
-            printf(YELLOW "\n[List of Teacher Only] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
+            listTeacherOnly();
             break;
         case 7:
-            printf(YELLOW "\n[List of Admin Only] - Coming Soon!\n" RESET);
-            pressKeyToContinue();
+            listAdminOnly();
             break;
         case 8:
             printf(YELLOW "\n[System Report] - Coming Soon!\n" RESET);
@@ -772,6 +772,126 @@ void listAllUsers()
             else
             {
                 printf(BLUE "%-10s\n" RESET, tempUser.role);
+            }
+        }
+    }
+    fclose(file);
+    printf(CYAN "\nTotal Users: %d\n" RESET, userCount);
+    pressKeyToContinue();
+}
+
+// Shows only Student's list
+void listStudentOnly()
+{
+
+    clearScreen();
+    printf(CYAN "=== Student List ===\n" RESET);
+    FILE *file = fopen(USER_FILE, "r");
+    if (file == NULL)
+    {
+        printf(RED "No users found or unable to open file.\n" RESET);
+        return;
+    }
+    char line[MAX_LINE_LENGTH];
+    User tempUser;
+    int userCount = 0;
+    printf(BLUE "%-4s %-20s %-25s %-15s %-10s\n", "No.", "Name", "Email", "Phone", "Role");
+    printf("---------------------------------------------------------------------\n" RESET);
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        if (sscanf(line, "%49[^,],%49[^,],%19[^,],%19[^,],%49[^\n]",
+                   tempUser.fullName, tempUser.email, tempUser.phone,
+                   tempUser.role, tempUser.password) == 5)
+        {
+
+            if (strcmp(tempUser.role, "Student") == 0){
+                userCount++;
+                printf("%-4d %-20s %-25s %-15s ", userCount, tempUser.fullName, tempUser.email, tempUser.phone);
+            }
+            if (strcmp(tempUser.role, "Student") == 0)
+            {
+                printf(BLUE "%-10s\n" RESET, tempUser.role);
+            }
+        }
+    }
+    fclose(file);
+    printf(CYAN "\nTotal Users: %d\n" RESET, userCount);
+    pressKeyToContinue();
+}
+
+// Shows only Teacher's list
+void listTeacherOnly()
+{
+
+    clearScreen();
+    printf(CYAN "=== Teacher List ===\n" RESET);
+    FILE *file = fopen(USER_FILE, "r");
+    if (file == NULL)
+    {
+        printf(RED "No users found or unable to open file.\n" RESET);
+        return;
+    }
+    char line[MAX_LINE_LENGTH];
+    User tempUser;
+    int userCount = 0;
+    printf(BLUE "%-4s %-20s %-25s %-15s %-10s\n", "No.", "Name", "Email", "Phone", "Role");
+    printf("---------------------------------------------------------------------\n" RESET);
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        if (sscanf(line, "%49[^,],%49[^,],%19[^,],%19[^,],%49[^\n]",
+                   tempUser.fullName, tempUser.email, tempUser.phone,
+                   tempUser.role, tempUser.password) == 5)
+        {
+
+            if (strcmp(tempUser.role, "Teacher") == 0){
+                userCount++;
+                printf("%-4d %-20s %-25s %-15s ", userCount, tempUser.fullName, tempUser.email, tempUser.phone);
+            }
+            if (strcmp(tempUser.role, "Teacher") == 0)
+            {
+                printf(MAGENTA "%-10s\n" RESET, tempUser.role);
+            }
+        }
+    }
+    fclose(file);
+    printf(CYAN "\nTotal Users: %d\n" RESET, userCount);
+    pressKeyToContinue();
+}
+
+// Shows only Admin's list
+void listAdminOnly()
+{
+
+    clearScreen();
+    printf(CYAN "=== Admin List ===\n" RESET);
+    FILE *file = fopen(USER_FILE, "r");
+    if (file == NULL)
+    {
+        printf(RED "No users found or unable to open file.\n" RESET);
+        return;
+    }
+    char line[MAX_LINE_LENGTH];
+    User tempUser;
+    int userCount = 0;
+    printf(BLUE "%-4s %-20s %-25s %-15s %-10s\n", "No.", "Name", "Email", "Phone", "Role");
+    printf("---------------------------------------------------------------------\n" RESET);
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        if (sscanf(line, "%49[^,],%49[^,],%19[^,],%19[^,],%49[^\n]",
+                   tempUser.fullName, tempUser.email, tempUser.phone,
+                   tempUser.role, tempUser.password) == 5)
+        {
+
+            if (strcmp(tempUser.role, "Admin") == 0){
+                userCount++;
+                printf("%-4d %-20s %-25s %-15s ", userCount, tempUser.fullName, tempUser.email, tempUser.phone);
+            }
+            if (strcmp(tempUser.role, "Admin") == 0)
+            {
+                printf(RED "%-10s\n" RESET, tempUser.role);
             }
         }
     }
@@ -908,6 +1028,7 @@ void viewMyFeeStatus(const char *studentEmail)
     if (!found)
     {
         printf(YELLOW "No fee records found for your account.\n" RESET);
+        pressKeyToContinue();
         return;
     }
 
