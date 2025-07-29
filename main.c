@@ -156,7 +156,7 @@ int main()
 
                 if (!isValidPhone(user.phone))
                 {
-                    printf(RED "Error: Please enter a valid phone number (7-15 digits).\n" RESET);
+                    printf(RED "Error: Please enter a valid phone number (10 digits).\n" RESET);
                     continue;
                 }
                 break;
@@ -295,7 +295,7 @@ int isValidPhone(const char *phone)
 {
     // Simple phone validation - only digits and reasonable length
     int len = strlen(phone);
-    if (len == 10)
+    if (len!= 10)
     {
         return 0;
     }
